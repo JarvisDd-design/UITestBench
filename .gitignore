@@ -1,0 +1,22 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# Claude Code 本地设置
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+._*
+
+# 测试与临时产物
+*.apk
+*.aab
+/tmp/
