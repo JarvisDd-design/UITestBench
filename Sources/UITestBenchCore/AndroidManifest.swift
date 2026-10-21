@@ -34,7 +34,11 @@ public enum AndroidManifestParser {
     public static let androidNamespaceURI = "http://schemas.android.com/apk/res/android"
 
     public static func parse(_ xmlData: Data) throws -> AndroidManifest {
-        let root = try AXmlParser.parse(xmlData).root
+        try parse(rootXML: AXmlParser.parse(xmlData).root)
+    }
+
+    /// 已经解析过 AXML 时直接用根元素，避免重复解析整棵树。
+    static func parse(rootXML root: AXmlElement) throws -> AndroidManifest {
         let application = root.child(named: "application")
         let usesSdk = root.child(named: "uses-sdk")
 

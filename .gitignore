@@ -20,3 +20,6 @@ DerivedData/
 *.apk
 *.aab
 /tmp/
+
+# 打包产物（安装包走 GitHub Releases，不进 Git 历史）
+/dist/

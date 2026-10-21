@@ -7,10 +7,19 @@ let package = Package(
         .macOS(.v12)
     ],
     products: [
-        .library(name: "UITestBenchCore", targets: ["UITestBenchCore"])
+        .library(name: "UITestBenchCore", targets: ["UITestBenchCore"]),
+        .executable(name: "UITestBenchApp", targets: ["UITestBenchApp"])
     ],
     targets: [
         .target(name: "UITestBenchCore"),
+        .executableTarget(
+            name: "UITestBenchApp",
+            dependencies: ["UITestBenchCore"],
+            resources: [
+                .copy("Resources/scrcpy-server.jar"),
+                .copy("Resources/scrcpy-LICENSE.txt")
+            ]
+        ),
         .testTarget(
             name: "UITestBenchCoreTests",
             dependencies: ["UITestBenchCore"]

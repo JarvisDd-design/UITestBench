@@ -1,3 +1,4 @@
+import Compression
 import Foundation
 
 /// 在测试里手工拼出一个合法的 ZIP 归档，避免依赖任何外部样本文件。
@@ -5,15 +6,36 @@ struct ZipFixtureBuilder {
     private struct Record {
         let path: String
         let contents: Data
+        var compressed: Data = Data()
+        var method: UInt16 = 0
+        var unixPermissions: UInt16?
         var crc: UInt32 = 0
         var localHeaderOffset: UInt32 = 0
     }
 
     private var records: [Record] = []
 
-    func addingStoredEntry(path: String, contents: Data) -> ZipFixtureBuilder {
+    func addingStoredEntry(path: String, contents: Data, unixPermissions: UInt16? = nil) -> ZipFixtureBuilder {
         var copy = self
-        copy.records.append(Record(path: path, contents: contents))
+        copy.records.append(Record(
+            path: path,
+            contents: contents,
+            compressed: contents,
+            method: 0,
+            unixPermissions: unixPermissions
+        ))
+        return copy
+    }
+
+    func addingDeflatedEntry(path: String, contents: Data, unixPermissions: UInt16? = nil) -> ZipFixtureBuilder {
+        var copy = self
+        copy.records.append(Record(
+            path: path,
+            contents: contents,
+            compressed: Self.deflate(contents),
+            method: 8,
+            unixPermissions: unixPermissions
+        ))
         return copy
     }
 
@@ -26,21 +48,21 @@ struct ZipFixtureBuilder {
             record.crc = CRC32.checksum(record.contents)
             record.localHeaderOffset = UInt32(output.count)
             let nameBytes = Data(record.path.utf8)
-            let size = UInt32(record.contents.count)
+            let size = UInt32(record.compressed.count)
 
             output.appendLE(UInt32(0x0403_4b50))   // local file header signature
             output.appendLE(UInt16(20))            // version needed
             output.appendLE(UInt16(0))             // flags
-            output.appendLE(UInt16(0))             // method: stored
+            output.appendLE(record.method)
             output.appendLE(UInt16(0))             // mod time
             output.appendLE(UInt16(0))             // mod date
             output.appendLE(record.crc)
             output.appendLE(size)                  // compressed size
-            output.appendLE(size)                  // uncompressed size
+            output.appendLE(UInt32(record.contents.count))
             output.appendLE(UInt16(nameBytes.count))
             output.appendLE(UInt16(0))             // extra field length
             output.append(nameBytes)
-            output.append(record.contents)
+            output.append(record.compressed)
 
             built.append(record)
         }
@@ -48,24 +70,26 @@ struct ZipFixtureBuilder {
         let centralStart = UInt32(output.count)
         for record in built {
             let nameBytes = Data(record.path.utf8)
-            let size = UInt32(record.contents.count)
+            let size = UInt32(record.compressed.count)
+            let madeBy: UInt16 = record.unixPermissions == nil ? 20 : 0x0314  // 高字节 3 = Unix
+            let externalAttributes = UInt32(record.unixPermissions ?? 0) << 16
 
             output.appendLE(UInt32(0x0201_4b50))   // central directory header signature
-            output.appendLE(UInt16(20))            // version made by
+            output.appendLE(madeBy)                // version made by
             output.appendLE(UInt16(20))            // version needed
             output.appendLE(UInt16(0))             // flags
-            output.appendLE(UInt16(0))             // method: stored
+            output.appendLE(record.method)
             output.appendLE(UInt16(0))             // mod time
             output.appendLE(UInt16(0))             // mod date
             output.appendLE(record.crc)
             output.appendLE(size)
-            output.appendLE(size)
+            output.appendLE(UInt32(record.contents.count))
             output.appendLE(UInt16(nameBytes.count))
             output.appendLE(UInt16(0))             // extra length
             output.appendLE(UInt16(0))             // comment length
             output.appendLE(UInt16(0))             // disk number
             output.appendLE(UInt16(0))             // internal attributes
-            output.appendLE(UInt32(0))             // external attributes
+            output.appendLE(externalAttributes)
             output.appendLE(record.localHeaderOffset)
             output.append(nameBytes)
         }
@@ -81,6 +105,26 @@ struct ZipFixtureBuilder {
         output.appendLE(UInt16(0))                 // comment length
 
         return output
+    }
+
+    /// 与 `ZipReader` 解压时用的格式一致：COMPRESSION_ZLIB 就是裸 DEFLATE。
+    private static func deflate(_ data: Data) -> Data {
+        let capacity = data.count + data.count / 8 + 1024
+        var output = Data(count: capacity)
+        let written = output.withUnsafeMutableBytes { destination -> Int in
+            data.withUnsafeBytes { source -> Int in
+                guard let destinationBase = destination.bindMemory(to: UInt8.self).baseAddress,
+                      let sourceBase = source.bindMemory(to: UInt8.self).baseAddress
+                else { return 0 }
+                return compression_encode_buffer(
+                    destinationBase, capacity,
+                    sourceBase, data.count,
+                    nil, COMPRESSION_ZLIB
+                )
+            }
+        }
+        precondition(written > 0, "测试数据的压缩结果不应为空")
+        return output.prefix(written)
     }
 }
 
