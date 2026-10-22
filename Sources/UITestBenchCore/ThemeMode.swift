@@ -9,6 +9,7 @@ public enum ThemeMode: String, CaseIterable, Equatable, Sendable {
     public static let userDefaultsKey = "UITestBench.themeMode"
 }
 
+/// 读写持久化的主题；缺省或无法识别时回退到浅色。
 public struct ThemePreference {
     private let defaults: UserDefaults
 

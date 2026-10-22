@@ -23,13 +23,25 @@ final class ThemeModeTests: XCTestCase {
     }
 
     func testPersistsSelection() {
-        var preference = ThemePreference(defaults: defaults)
+        let preference = ThemePreference(defaults: defaults)
         preference.mode = .dark
         XCTAssertEqual(ThemePreference(defaults: defaults).mode, .dark)
     }
 
     func testUnknownValueFallsBackToLight() {
         defaults.set("purple", forKey: ThemeMode.userDefaultsKey)
+        XCTAssertEqual(ThemePreference(defaults: defaults).mode, .light)
+    }
+
+    func testSwitchingBackToLightPersists() {
+        let preference = ThemePreference(defaults: defaults)
+        preference.mode = .dark
+        preference.mode = .light
+        XCTAssertEqual(ThemePreference(defaults: defaults).mode, .light)
+    }
+
+    func testEmptyValueFallsBackToLight() {
+        defaults.set("", forKey: ThemeMode.userDefaultsKey)
         XCTAssertEqual(ThemePreference(defaults: defaults).mode, .light)
     }
 }
