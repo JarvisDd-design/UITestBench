@@ -30,6 +30,7 @@ struct ContentView: View {
     private let paths = AppPaths.standard
     @StateObject private var setup: SetupModel
     @StateObject private var window = BenchWindowController()
+    @StateObject private var theme = ThemeStore()
 
     init() {
         _setup = StateObject(wrappedValue: SetupModel(paths: .standard))
@@ -50,6 +51,9 @@ struct ContentView: View {
         // 临时：旧布局没有自己的底色，透明窗口下文字会直接压到桌面上。
         // Task 24 重写界面时连同旧布局一起删掉这一行。
         .background(Color(nsColor: .windowBackgroundColor))
+        // 主题从根上定死（默认浅色），不跟随系统。旧布局也先套上，
+        // 否则系统深色时 APK 区会读到浅色 token、压在大面积深色上。
+        .benchTheme(theme.mode)
         .onAppear {
             setup.markReadyIfInstalled()
         }

@@ -352,20 +352,20 @@ struct APKPanelView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Label("识别到下载地址", systemImage: "checkmark.circle.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(palette.limeInk)
                 Text(notice.link.host)
                     .font(.caption)
                 Text(notice.link.fileName)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.textSecondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 HStack(spacing: 8) {
                     Button("下载") { model.downloadScannedLink() }
                         .buttonStyle(BenchPrimaryButtonStyle(height: 28))
                     Button("取消") { model.dismissScanNotice() }
+                        .buttonStyle(BenchSecondaryButtonStyle(height: 28))
                 }
-                .controlSize(.small)
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -444,7 +444,7 @@ struct APKPanelView: View {
                 .font(.callout)
             Text("也可以拖入链接、图片，或从剪贴板粘贴")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(palette.textTertiary)
         }
         .foregroundStyle(isDropTargeted ? palette.limeInk : palette.textSecondary)
         .frame(maxWidth: .infinity)
@@ -452,7 +452,7 @@ struct APKPanelView: View {
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(
-                    isDropTargeted ? palette.limeInk : palette.separator,
+                    isDropTargeted ? palette.limeInk : palette.textTertiary,
                     style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
                 )
         )
@@ -521,7 +521,7 @@ struct APKPanelView: View {
         VStack(alignment: .leading, spacing: 5) {
             if report.isCompatible {
                 Label("可以在这台模拟器上安装", systemImage: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(palette.limeInk)
             } else {
                 Label("这个包装不上", systemImage: "xmark.octagon.fill")
                     .foregroundStyle(palette.error)
