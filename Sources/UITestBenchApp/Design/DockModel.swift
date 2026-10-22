@@ -16,6 +16,8 @@ final class DockModel: ObservableObject {
     private var pendingHover: DockModule?
     private var closeWork: DispatchWorkItem?
     private var outsideMonitor: Any?
+    /// 指针是否在抽屉里。离开轨道项的事件可能晚于进入抽屉的事件。
+    private var drawerHovered = false
 
     var presented: DockModule? { state.presented }
     var pinned: DockModule? { state.pinned }
@@ -48,7 +50,7 @@ final class DockModel: ObservableObject {
                 hoverWork = nil
                 pendingHover = nil
             }
-            guard state.pinned == nil else { return }
+            guard state.pinned == nil, !drawerHovered else { return }
             if state.hovered == module {
                 scheduleClose(module)
             }
@@ -57,6 +59,7 @@ final class DockModel: ObservableObject {
 
     /// 鼠标进入抽屉时取消收起；离开时只有未钉住才收起。
     func drawerHover(_ inside: Bool) {
+        drawerHovered = inside
         if inside {
             cancelClose()
         } else if state.pinned == nil, let shown = state.hovered {
@@ -82,6 +85,8 @@ final class DockModel: ObservableObject {
         hoverWork = nil
         closeWork = nil
         pendingHover = nil
+        // Esc 收起时视图可能直接消失，收不到 onHover(false)。
+        drawerHovered = false
         state.dismiss()
     }
 
