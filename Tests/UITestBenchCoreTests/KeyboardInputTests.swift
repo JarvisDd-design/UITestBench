@@ -47,6 +47,10 @@ final class KeyboardInputTests: XCTestCase {
         XCTAssertNil(action("a", .control))
         XCTAssertNil(action("a", .option))
         XCTAssertNil(action("v", [.command, .option]))
+        // 被吞掉的键也不能抢走 Mac 的快捷键。
+        XCTAssertNil(action("\u{7F}", .command))
+        XCTAssertNil(action("\u{1B}", .command))
+        XCTAssertNil(action("\u{1B}", .control))
     }
 
     /// 控制通道只送 ASCII：中文没有对应的按键事件，服务端也注入不进去。

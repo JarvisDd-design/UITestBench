@@ -531,10 +531,10 @@ private struct DeviceArea: View {
         }
     }
 
-    /// 设备上的三个系统键。键盘上 Delete/Esc 等同于返回。
+    /// 设备上的三个系统键。
     private var navigationBar: some View {
         HStack(spacing: 10) {
-            deviceKeyButton("返回", systemImage: "chevron.backward", key: .back, hint: "返回（Delete 或 Esc）")
+            deviceKeyButton("返回", systemImage: "chevron.backward", key: .back, hint: "返回")
             deviceKeyButton("主页", systemImage: "house", key: .home, hint: "回到桌面")
             deviceKeyButton("多任务", systemImage: "rectangle.on.rectangle", key: .appSwitch, hint: "最近任务")
 
