@@ -22,20 +22,27 @@ final class DockModel: ObservableObject {
 
     func hover(_ module: DockModule, inside: Bool) {
         if inside {
-            closeWork?.cancel()
-            closeWork = nil
             guard state.pinned == nil else { return }
+            // 回到已经展开的那一项时取消收起，避免闪一下。
+            if state.hovered == module { cancelClose() }
             hoverWork?.cancel()
             pendingHover = module
             let work = DispatchWorkItem { [weak self] in
-                self?.pendingHover = nil
-                self?.state.hover(module)
+                guard let self, self.pendingHover == module, self.state.pinned == nil else {
+                    return
+                }
+                self.pendingHover = nil
+                self.hoverWork = nil
+                // 抽屉这一刻才真的展开，之前排的收起计时都不作数。
+                self.cancelClose()
+                self.state.hover(module)
             }
             hoverWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.hoverDelay, execute: work)
         } else {
             // 鼠标从 A 划到 B 时，A 的离开事件可能晚于 B 的进入事件。
-            // 只清理属于 A 的计时，否则会把 B 刚排好的展开也取消掉。
+            // 只清理属于自己的展开计时；收起计时则按「哪个模块」记账，
+            // 见 scheduleClose(_:)。
             if pendingHover == module {
                 hoverWork?.cancel()
                 hoverWork = nil
@@ -43,7 +50,7 @@ final class DockModel: ObservableObject {
             }
             guard state.pinned == nil else { return }
             if state.hovered == module {
-                scheduleClose()
+                scheduleClose(module)
             }
         }
     }
@@ -51,10 +58,9 @@ final class DockModel: ObservableObject {
     /// 鼠标进入抽屉时取消收起；离开时只有未钉住才收起。
     func drawerHover(_ inside: Bool) {
         if inside {
-            closeWork?.cancel()
-            closeWork = nil
-        } else if state.pinned == nil {
-            scheduleClose()
+            cancelClose()
+        } else if state.pinned == nil, let shown = state.hovered {
+            scheduleClose(shown)
         }
     }
 
@@ -62,6 +68,7 @@ final class DockModel: ObservableObject {
         hoverWork?.cancel()
         hoverWork = nil
         pendingHover = nil
+        cancelClose()
         if Self.supportsPinning {
             state.pin(module)
         } else {
@@ -97,12 +104,23 @@ final class DockModel: ObservableObject {
         outsideMonitor = nil
     }
 
-    private func scheduleClose() {
-        closeWork?.cancel()
+    /// 收起必须记住是给哪个模块排的：期间可能已经换到另一个抽屉，
+    /// 到点再无条件 clearHover 会把新展开的抽屉关掉。
+    private func scheduleClose(_ module: DockModule) {
+        cancelClose()
         let work = DispatchWorkItem { [weak self] in
-            self?.state.clearHover()
+            guard let self, self.state.pinned == nil, self.state.hovered == module else {
+                return
+            }
+            self.state.clearHover()
+            self.closeWork = nil
         }
         closeWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.closeDelay, execute: work)
+    }
+
+    private func cancelClose() {
+        closeWork?.cancel()
+        closeWork = nil
     }
 }
