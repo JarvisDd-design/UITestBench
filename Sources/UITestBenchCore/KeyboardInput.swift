@@ -1,9 +1,11 @@
 import Foundation
 
-/// 一次按键在设备上的归宿：输入一段文字，或者按一个系统键。
+/// 一次按键在设备上的归宿：输入一段文字、按一个系统键，或者被画面吞掉。
 public enum KeyboardAction: Equatable, Sendable {
     case text(String)
     case key(AndroidKey)
+    /// 这个键由设备画面消费，但不再映射成任何设备动作。
+    case ignored
 }
 
 /// 把 Mac 键盘的按键翻译成设备动作。
@@ -39,8 +41,8 @@ public enum KeyboardInput {
             // 主键盘回车、换行、小键盘回车（ETX）。
             return .key(.enter)
         case "\u{7F}", "\u{8}", "\u{1B}":
-            // 删除有两种编码（DEL / BS），Esc 一并当作返回。
-            return .key(.back)
+            // 删除/Esc 不再当返回；吞掉是为了避免 AppKit 发出提示音。
+            return .ignored
         default:
             break
         }

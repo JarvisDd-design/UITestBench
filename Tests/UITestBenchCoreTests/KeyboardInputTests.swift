@@ -33,11 +33,12 @@ final class KeyboardInputTests: XCTestCase {
         XCTAssertEqual(action("\u{3}"), .key(.enter), "小键盘的回车是 ETX")
     }
 
-    /// 删除键在安卓上没有「退格文字」这种注入方式，最接近的是系统返回。
-    func testDeleteAndEscapePressBack() {
-        XCTAssertEqual(action("\u{7F}"), .key(.back))
-        XCTAssertEqual(action("\u{8}"), .key(.back))
-        XCTAssertEqual(action("\u{1B}"), .key(.back))
+    /// 1.3.0 起不再把删除/Esc 当返回：这些键会被吞掉，
+    /// 既不触发设备返回，也不在 Mac 上发出提示音。
+    func testDeleteAndEscapeAreSwallowedButDoNotPressBack() {
+        XCTAssertEqual(action("\u{7F}"), .ignored)
+        XCTAssertEqual(action("\u{8}"), .ignored)
+        XCTAssertEqual(action("\u{1B}"), .ignored)
     }
 
     /// ⌘C、⌃A、⌥a 这些是 Mac 自己的快捷键，不能漏给设备。

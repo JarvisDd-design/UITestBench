@@ -233,6 +233,12 @@ final class MirrorDisplayView: NSView {
             inputController?.sendText(text)
         case let .key(key):
             inputController?.pressKey(key)
+        case .ignored:
+            // Esc 仍然要能把坞抽屉收起来；交给响应链上的 cancelOperation。
+            if event.keyCode == 53 {
+                NSApp.sendAction(#selector(NSResponder.cancelOperation(_:)), to: nil, from: self)
+            }
+            return
         }
     }
 
