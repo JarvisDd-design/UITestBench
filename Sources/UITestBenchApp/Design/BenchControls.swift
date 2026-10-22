@@ -43,15 +43,21 @@ struct TrafficLights: View {
     @Environment(\.benchPalette) private var palette
     @State private var isHovering = false
 
+    private enum Action {
+        case close
+        case minimize
+        case fullScreen
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            dot(color: palette.trafficClose, symbol: "xmark", label: "关闭", action: window.close)
-            dot(color: palette.trafficMinimize, symbol: "minus", label: "最小化", action: window.minimize)
+            dot(color: palette.trafficClose, symbol: "xmark", label: "关闭", action: .close)
+            dot(color: palette.trafficMinimize, symbol: "minus", label: "最小化", action: .minimize)
             dot(
                 color: palette.trafficZoom,
                 symbol: "arrow.up.left.and.arrow.down.right",
                 label: "全屏",
-                action: window.toggleFullScreen
+                action: .fullScreen
             )
         }
         .padding(.leading, 12)
@@ -62,9 +68,18 @@ struct TrafficLights: View {
         color: Color,
         symbol: String,
         label: String,
-        action: @escaping () -> Void
+        action: Action
     ) -> some View {
-        Button(action: action) {
+        Button {
+            // Button 的回调没有隔离信息；显式回到主线程再调窗口动作。
+            Task { @MainActor in
+                switch action {
+                case .close: window.close()
+                case .minimize: window.minimize()
+                case .fullScreen: window.toggleFullScreen()
+                }
+            }
+        } label: {
             ZStack {
                 Circle().fill(color).frame(width: 12, height: 12)
                 if isHovering {
