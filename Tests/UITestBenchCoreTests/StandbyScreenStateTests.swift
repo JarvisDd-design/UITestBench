@@ -25,14 +25,30 @@ final class StandbyScreenStateTests: XCTestCase {
         )
     }
 
-    func testFailureOnlyWhenDeviceStopped() {
+    func testFailureWinsRegardlessOfDeviceState() {
         XCTAssertEqual(
             StandbyScreenStateResolver.resolve(input(failure: "启动失败", deviceRunning: false)),
             .failed("启动失败")
         )
         XCTAssertEqual(
-            StandbyScreenStateResolver.resolve(input(failure: "旧错误", deviceRunning: true)),
+            StandbyScreenStateResolver.resolve(input(failure: "画面组件缺失", deviceRunning: true)),
+            .failed("画面组件缺失")
+        )
+    }
+
+    func testConnectingWinsOverAPK() {
+        XCTAssertEqual(
+            StandbyScreenStateResolver.resolve(input(hasAPK: true, deviceRunning: true)),
             .connecting
+        )
+    }
+
+    func testStartingWinsOverRunningAndFailure() {
+        XCTAssertEqual(
+            StandbyScreenStateResolver.resolve(
+                input(isStarting: true, failure: "旧错误", hasAPK: true, deviceRunning: true)
+            ),
+            .starting
         )
     }
 
