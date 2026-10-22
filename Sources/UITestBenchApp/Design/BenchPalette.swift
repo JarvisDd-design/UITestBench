@@ -30,6 +30,8 @@ struct BenchPalette {
     let trafficClose: Color
     let trafficMinimize: Color
     let trafficZoom: Color
+    /// 交通灯悬停时圆点上的小图标。
+    let trafficSymbol: Color
     let lime: Color
     let onLime: Color
     /// 浅色下黄绿不能直接做文字，改用深橄榄；深色下可以直接用黄绿。
@@ -55,6 +57,7 @@ struct BenchPalette {
         trafficClose: Color(hex: 0xFF5F57),
         trafficMinimize: Color(hex: 0xFEBC2E),
         trafficZoom: Color(hex: 0x28C840),
+        trafficSymbol: Color.black.opacity(0.6),
         lime: Color(hex: 0xC6F24E),
         onLime: Color(hex: 0x14210A),
         limeInk: Color(hex: 0x3F6212),
@@ -78,6 +81,7 @@ struct BenchPalette {
         trafficClose: Color(hex: 0xFF5F57),
         trafficMinimize: Color(hex: 0xFEBC2E),
         trafficZoom: Color(hex: 0x28C840),
+        trafficSymbol: Color.black.opacity(0.6),
         lime: Color(hex: 0xC6F24E),
         onLime: Color(hex: 0x14210A),
         limeInk: Color(hex: 0xC6F24E),
