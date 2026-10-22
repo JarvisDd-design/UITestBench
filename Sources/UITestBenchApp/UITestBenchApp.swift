@@ -43,6 +43,7 @@ private struct BenchView: View {
     @StateObject private var device: EmulatorController
     @StateObject private var mirror: MirrorModel
     @StateObject private var apk: APKPanelModel
+    @StateObject private var scanner = ScreenScannerModel()
     @StateObject private var run = RunModel()
     @StateObject private var screenshot = ScreenshotModel()
     @StateObject private var session: SessionModel
@@ -71,6 +72,7 @@ private struct BenchView: View {
                 paths: paths,
                 device: device,
                 apk: apk,
+                scanner: scanner,
                 run: run,
                 session: session,
                 profileIndex: $profileIndex,
@@ -108,9 +110,18 @@ private struct BenchView: View {
             session.startIfNeeded()
             // 退出时先卸包、再关设备：设备关了 adb 就卸不掉了。
             ShutdownCoordinator.shared.perform = {
+                scanner.shutdown()
                 await session.shutdown()
                 try? await device.stop()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            // 保证屏幕录制指示灯熄灭，不留后台捕获。
+            scanner.shutdown()
+        }
+        .onDisappear {
+            // 主窗口关闭后 BenchView 会消失；取景框和录制指示灯不能留在后台。
+            scanner.shutdown()
         }
         .sheet(
             isPresented: Binding(
@@ -131,6 +142,7 @@ private struct SidePanel: View {
     let paths: AppPaths
     @ObservedObject var device: EmulatorController
     @ObservedObject var apk: APKPanelModel
+    @ObservedObject var scanner: ScreenScannerModel
     @ObservedObject var run: RunModel
     @ObservedObject var session: SessionModel
     @Binding var profileIndex: Int
@@ -147,7 +159,7 @@ private struct SidePanel: View {
             Text("UI验收台")
                 .font(.title2.weight(.semibold))
 
-            APKPanelView(model: apk)
+            APKPanelView(model: apk, scanner: scanner)
 
             if let notice = session.recoveryNotice {
                 Label(notice, systemImage: "arrow.counterclockwise.circle")

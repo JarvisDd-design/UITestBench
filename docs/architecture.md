@@ -9,10 +9,11 @@ UITestBenchApp (SwiftUI)
   UITestBenchApp.swift     主窗口、左栏、右栏、截图模式
   SetupModel / RunModel / SessionModel / MirrorModel /
   ScreenshotModel / AnnotationEditorModel
+  Scanner/                 透明取景框、ScreenCaptureKit、权限状态机
         │  只订阅状态、转发用户动作
         ▼
 UITestBenchCore (纯逻辑，无 SwiftUI)
-  SDK · AVD · 进程 · scrcpy · APK · 设备 ID · 清理
+  SDK · AVD · 进程 · scrcpy · APK · 二维码识别 · 设备 ID · 清理
         │
         ▼
 adb / emulator / scrcpy-server.jar / VideoToolbox / 文件系统
@@ -27,7 +28,11 @@ adb / emulator / scrcpy-server.jar / VideoToolbox / 文件系统
    离线导入走同一条安装路径，只是归档来自用户选择的文件夹；安装器不会删除这些归档。
 
 2. **准备 APK**
-   `APKSource` 表示本地文件 / 远程链接；`APKAcquirer` 负责下载或解码二维码图片，得到本地文件。远程下载的文件落在 `tmp/apk/`，随会话清理；用户选中的原始 APK 不复制、不删除。
+   `APKSource` 表示本地文件 / 远程链接。四条入口最终都收敛到它：拖入 / 选择文件、剪贴板图片、屏幕取景框扫码、粘贴链接。
+
+   屏幕扫码走 `/Scanner`：`ScreenScannerModel` 在主窗口最小化后弹出 `ScannerPanel`——一张可拖动的玻璃卡片，中央是 320×320 的透明取景区，毛玻璃只铺在四条边框上，绝不覆盖取景区域。面板出现后先有 2 秒准备期：捕获照常启动（把 `SCStream` 的启动时间藏进准备期），但 `ScanSession` 的 `startAt` 让这段时间不判定，光带也停在原地。准备期结束后光带开始扫，`CaptureRegionCalculator` 把取景区的 AppKit 坐标换成 ScreenCaptureKit 的显示器本地坐标，`ScreenRegionCapture` 只捕获取景区（10 fps）。帧在后台串行队列交给 `ScanSession`：`VisionBarcodeDetector` 识别 QR → `ScanCandidateSelector` 取离框中心最近的码 → `ScanHitGate` 要求同一链接连续 2 帧才算命中。命中后停扫、显示对勾 1 秒，再恢复主窗口，只把 `DownloadLink` 交给 APK 面板弹确认条；用户点「下载」才调用 `APKAcquirer`。
+
+   `APKAcquirer` 负责下载本地化，得到文件。远程下载的文件落在 `tmp/apk/`，随会话清理；用户选中的原始 APK 不复制、不删除。扫码来源使用 `.scanned` 策略：取消或解析失败时删掉这次下载的临时文件与 `.part`。
    `ZipReader` 读 ZIP 中央目录 → `AXmlParser` 解析二进制 `AndroidManifest.xml` → `AndroidManifest` / `ApkInspector` 得到包名、版本、启动 Activity、ABI → `CompatibilityChecker` 给出阻断或放行。
 
 3. **启动设备**
@@ -63,6 +68,10 @@ adb / emulator / scrcpy-server.jar / VideoToolbox / 文件系统
 | 滚轮合成短拖动 | AOSP 14 镜像上 `INJECT_SCROLL_EVENT` 应用层不响应；合成拖动是唯一稳定的路径。 |
 | 改 SSAID 前先停系统框架 | SettingsProvider 内存里有旧表，不停框架直接改文件会被覆盖回去。 |
 | 团队统一 `userkey` | SSAID = HMAC(userkey, 签名证书)。固定 userkey，所有电脑对同一套证书得到同一个 ID，开发只配一次白名单。 |
+| 扫码只捕获取景框，不截全屏 | 飞书/浏览器里常同时有多个码；框内捕获既符合「对准哪个扫哪个」的直觉，也把 CPU 和隐私面压到最小。 |
+| 屏幕画面只在内存里识别 | 捕获帧不写盘、不进日志/诊断/报告。用户桌面和公司聊天内容不应该因为扫码被留存。 |
+| Vision 失败再试反色与 CIDetector | 暗色模式、反色码在飞书里很常见；静态截图还要兼容旧路径。原始帧不做预处理，避免每帧都付图像变换的代价。 |
+| 扫码下载不设体积上限、失败即删 | 二维码背后的 APK 大小不可预知；确认条 + 下载中的取消按钮负责兜底。临时文件只属于工具，失败就清掉。 |
 | 退出即清业务数据 | 设计核对不应把公司包和登录态留在同事机器上；原始 APK 与导出截图除外。 |
 
 ## 状态与磁盘
@@ -80,6 +89,7 @@ logs/    emulator.log 等
 
 ## 测试结构
 
-- 纯逻辑单测：`Tests/UITestBenchCoreTests/*Tests.swift`，用假 runner / 假 socket / 假进程，不碰真实环境。
+- 纯逻辑单测：`Tests/UITestBenchCoreTests/*Tests.swift`，用假 runner / 假 socket / 假进程，不碰真实环境。扫码的决策链（链接校验、候选排序、命中门限、坐标换算、Vision 识别）都在 Core，用现场生成的二维码图片测试，不提交外部截图。
+- App 层的捕获与取景框不建测试 target：决策链已由 Core 覆盖；`ScreenScannerModel` 直接装配 `ScreenRegionCapture` 与 `VisionBarcodeDetector`（二者分别有 `ScreenCapturing` / `BarcodeDetecting` 协议），编排、权限与多屏行为靠手工验收。
 - 真实环境验收：`Real*AcceptanceTests.swift`，默认 skip，靠 `UITESTBENCH_REAL_SETUP=1` 打开；需要真实 SDK、模拟器和样本 APK。运行方式见 [acceptance-testing.md](acceptance-testing.md)。
 - 设备 ID 的算法与映射见 [device-id.md](device-id.md)。

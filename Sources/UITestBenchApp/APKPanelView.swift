@@ -17,12 +17,20 @@ final class APKPanelModel: ObservableObject {
         case failed(String)
     }
 
+    /// 扫码命中后先停在确认条上，用户点「下载」才真正开始。
+    struct ScanNotice: Equatable {
+        let link: DownloadLink
+    }
+
     @Published private(set) var state: State = .empty
     @Published private(set) var progress: Double?
+    @Published private(set) var scanNotice: ScanNotice?
     @Published var linkText = ""
 
     private let acquirer: APKAcquirer
     private var currentTask: Task<Void, Never>?
+    /// 每次换来源都会推进；旧任务迟到的进度和结果不许覆盖新任务。
+    private var loadID = 0
 
     init(paths: AppPaths) {
         acquirer = APKAcquirer(directory: paths.apkDirectory)
@@ -51,63 +59,227 @@ final class APKPanelModel: ObservableObject {
         }
     }
 
-    /// 拖动进来的东西从 `NSItemProvider` 取出文件地址。
-    /// 图片里如果直接带数据而不是文件，这里暂时不处理——从 Finder 拖出来都是文件。
+    /// 截图数据：剪贴板、拖入的图片、浏览器里直接拖出来的图都走这里。
+    func accept(imageData data: Data) {
+        load(sourceName: "二维码截图") {
+            try APKSourceResolver.source(forImageData: data)
+        }
+    }
+
+    /// 选择本地 APK 或二维码截图。放在 model 里，扫码的「改用截图」
+    /// 可以直接调用，不会把视图一起保活。
+    func chooseFile() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [
+            "apk", "png", "jpg", "jpeg", "heic", "heif", "gif",
+            "tiff", "tif", "bmp", "webp", "avif",
+        ].compactMap { UTType(filenameExtension: $0) }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        accept(droppedFile: url)
+    }
+
+    /// 拖动进来的东西可能是文件、图片数据、链接或纯文本。
     func accept(droppedProviders providers: [NSItemProvider]) -> Bool {
         guard let provider = providers.first else { return false }
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            guard let url = Self.fileURL(from: item) else { return }
-            Task { @MainActor in
-                self.accept(droppedFile: url)
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                guard let url = Self.fileURL(from: item) else { return }
+                Task { @MainActor in
+                    self.accept(droppedFile: url)
+                }
             }
+            return true
         }
-        return true
+
+        let imageTypes: [UTType] = [.image, .png, .tiff, .jpeg, .heic]
+        if let type = imageTypes.first(where: {
+            provider.hasItemConformingToTypeIdentifier($0.identifier)
+        }) {
+            provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
+                guard let data else { return }
+                Task { @MainActor in
+                    self.accept(imageData: data)
+                }
+            }
+            return true
+        }
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
+                let url: URL?
+                if let value = item as? URL {
+                    url = value
+                } else if let data = item as? Data {
+                    url = URL(dataRepresentation: data, relativeTo: nil)
+                } else {
+                    url = nil
+                }
+                guard let url else { return }
+                Task { @MainActor in
+                    self.linkText = url.absoluteString
+                    self.accept(pastedLink: url.absoluteString)
+                }
+            }
+            return true
+        }
+
+        if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+                guard let text = item as? String else { return }
+                Task { @MainActor in
+                    self.linkText = text
+                    self.accept(pastedLink: text)
+                }
+            }
+            return true
+        }
+
+        return false
+    }
+
+    /// ⌘⇧V：从剪贴板拿截图、文件或链接。
+    func pasteFromClipboard() {
+        let pasteboard = NSPasteboard.general
+
+        if let urls = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL], let url = urls.first {
+            accept(droppedFile: url)
+            return
+        }
+
+        if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            accept(imageData: data)
+            return
+        }
+
+        // 有些聊天工具只提供 NSImage，不直接给 PNG/TIFF 数据。
+        if let image = pasteboard.readObjects(forClasses: [NSImage.self], options: nil)?
+            .first as? NSImage,
+           let data = image.tiffRepresentation {
+            accept(imageData: data)
+            return
+        }
+
+        if let urlString = pasteboard.string(forType: .URL) {
+            linkText = urlString
+            accept(pastedLink: urlString)
+            return
+        }
+
+        if let text = pasteboard.string(forType: .string),
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            linkText = text
+            accept(pastedLink: text)
+            return
+        }
+
+        // 空剪贴板不能把正在下载或已经拿到的包冲掉，只提醒一下。
+        guard !isLoading, scanNotice == nil, acquired == nil else {
+            NSSound.beep()
+            return
+        }
+        state = .failed("剪贴板里没有图片或链接。先复制一张带二维码的截图，或复制 APK 下载链接。")
+    }
+
+    // MARK: - 扫码结果
+
+    func presentScannedLink(_ link: DownloadLink) {
+        currentTask?.cancel()
+        currentTask = nil
+        loadID += 1
+        progress = nil
+        state = .empty
+        scanNotice = ScanNotice(link: link)
+    }
+
+    func downloadScannedLink() {
+        guard let notice = scanNotice else { return }
+        scanNotice = nil
+        load(
+            sourceName: "\(notice.link.host)/\(notice.link.fileName)",
+            policy: .scanned,
+            scanned: true
+        ) {
+            .remote(notice.link.url)
+        }
+    }
+
+    func dismissScanNotice() {
+        scanNotice = nil
     }
 
     func cancel() {
         currentTask?.cancel()
         currentTask = nil
+        loadID += 1
         progress = nil
         state = .empty
     }
 
-    private func load(sourceName: String, source: @escaping () throws -> APKSource) {
+    private func load(
+        sourceName: String,
+        policy: APKAcquisitionPolicy = .standard,
+        scanned: Bool = false,
+        source: @escaping @Sendable () throws -> APKSource
+    ) {
         currentTask?.cancel()
+        loadID += 1
+        let id = loadID
+        scanNotice = nil
         progress = nil
         state = .loading(description: sourceName)
 
         currentTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let resolved = try source()
-                let acquired = try await acquirer.acquire(resolved) { update in
+                // 解码截图、校验链接是同步 CPU 活；放到后台，大截图不会卡住界面。
+                let resolved = try await Task.detached(priority: .userInitiated) {
+                    try source()
+                }.value
+                guard id == self.loadID, !Task.isCancelled else { return }
+
+                let acquired = try await self.acquirer.acquire(resolved, policy: policy) { update in
                     let fraction = update.fraction
                     Task { @MainActor [weak self] in
-                        self?.progress = fraction
+                        guard let self, id == self.loadID else { return }
+                        self.progress = fraction
                     }
                 }
-                guard !Task.isCancelled else { return }
-                progress = nil
-                state = .loaded(acquired)
+                guard id == self.loadID, !Task.isCancelled else { return }
+                self.progress = nil
+                self.state = .loaded(acquired)
             } catch is CancellationError {
                 // 用户换了来源或点了取消，状态已经由新的动作接管。
             } catch let error as APKSourceError {
-                guard !Task.isCancelled else { return }
-                progress = nil
-                state = .failed(error.explanation)
+                guard id == self.loadID, !Task.isCancelled else { return }
+                self.progress = nil
+                self.state = .failed(error.explanation)
             } catch let error as APKAcquisitionError {
-                guard !Task.isCancelled else { return }
-                progress = nil
-                state = .failed(error.explanation)
+                guard id == self.loadID, !Task.isCancelled else { return }
+                self.progress = nil
+                self.state = .failed(scanned ? Self.scannedExplanation(for: error) : error.explanation)
             } catch {
-                guard !Task.isCancelled else { return }
-                progress = nil
-                state = .failed(error.localizedDescription)
+                guard id == self.loadID, !Task.isCancelled else { return }
+                self.progress = nil
+                self.state = .failed(error.localizedDescription)
             }
         }
     }
 
-    private static func fileURL(from item: NSSecureCoding?) -> URL? {
+    /// 扫码下载失败时补一句「二维码里可能不是 APK」，比裸的错误码更像人话。
+    private static func scannedExplanation(for error: APKAcquisitionError) -> String {
+        if case .inspection(.notAZipArchive) = error {
+            return "下载完成了，但这个文件不是 APK。二维码里可能是一个网页或普通文件。"
+        }
+        return error.explanation
+    }
+
+    nonisolated private static func fileURL(from item: NSSecureCoding?) -> URL? {
         if let url = item as? URL { return url }
         if let data = item as? Data { return URL(dataRepresentation: data, relativeTo: nil) }
         return nil
@@ -117,12 +289,28 @@ final class APKPanelModel: ObservableObject {
 /// 左栏的 APK 区：拖放框 + 链接输入 + 本地文件，下面是包信息和兼容性结论。
 struct APKPanelView: View {
     @ObservedObject var model: APKPanelModel
+    @ObservedObject var scanner: ScreenScannerModel
     @State private var isDropTargeted = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("APK")
                 .font(.headline)
+
+            // 扫码是主入口：对准飞书/浏览器里的码就行，不用先截图。
+            Button {
+                scanner.start(from: NSApp.keyWindow)
+            } label: {
+                Label("扫描屏幕二维码", systemImage: "qrcode.viewfinder")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(scanner.isScanning)
+            .help("打开可拖动的取景卡片，出现 2 秒后开始扫描")
+
+            scanNoticeView
+            scannerIssueView
 
             dropZone
 
@@ -136,13 +324,118 @@ struct APKPanelView: View {
                 .disabled(model.linkText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
-            Button("选择本地文件…") {
-                chooseFile()
+            HStack(spacing: 10) {
+                Button("选择本地文件…") {
+                    model.chooseFile()
+                }
+                Button("从剪贴板粘贴") {
+                    model.pasteFromClipboard()
+                }
+                .keyboardShortcut("v", modifiers: [.command, .shift])
+                .help("粘贴截图、图片文件或下载链接（⌘⇧V）")
             }
             .buttonStyle(.link)
             .font(.caption)
 
             stateView
+        }
+        .onAppear {
+            scanner.onHit = { link in
+                model.presentScannedLink(link)
+            }
+            scanner.onFallback = {
+                model.chooseFile()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var scanNoticeView: some View {
+        if let notice = model.scanNotice {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("识别到下载地址", systemImage: "checkmark.circle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.green)
+                Text(notice.link.host)
+                    .font(.caption)
+                Text(notice.link.fileName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                HStack(spacing: 8) {
+                    Button("下载") { model.downloadScannedLink() }
+                        .buttonStyle(.borderedProminent)
+                    Button("取消") { model.dismissScanNotice() }
+                }
+                .controlSize(.small)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.1))
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var scannerIssueView: some View {
+        switch scanner.state {
+        case let .permissionDenied(issue):
+            VStack(alignment: .leading, spacing: 6) {
+                Label(issue.title, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                Text(issue.message)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if case .resetNeedsRestart = issue {
+                    HStack(spacing: 8) {
+                        Button("退出应用") { NSApp.terminate(nil) }
+                        Button("稍后") { scanner.dismissIssue() }
+                    }
+                    .controlSize(.small)
+                } else {
+                    if issue.offersPermissionActions {
+                        HStack(spacing: 8) {
+                            Button("打开系统设置") { scanner.openSystemSettings() }
+                            Button("重置授权") { scanner.resetPermission() }
+                            Button("重新检查") { scanner.recheckPermission() }
+                        }
+                        .controlSize(.small)
+                    }
+                    HStack(spacing: 8) {
+                        Button("重试扫描") { scanner.start(from: NSApp.keyWindow) }
+                        Button("改用截图…") { scanner.useScreenshotFallback() }
+                    }
+                    .controlSize(.small)
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.orange.opacity(0.1))
+            )
+
+        case let .failed(message):
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(message)
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("知道了") { scanner.dismissIssue() }
+                        .buttonStyle(.link)
+                        .font(.caption)
+                }
+            }
+
+        case .idle, .scanning:
+            EmptyView()
         }
     }
 
@@ -152,7 +445,7 @@ struct APKPanelView: View {
                 .font(.title3)
             Text("拖入 APK 或二维码截图")
                 .font(.callout)
-            Text("也可以拖入一张包含下载链接的二维码图片")
+            Text("也可以拖入链接、图片，或从剪贴板粘贴")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -167,7 +460,7 @@ struct APKPanelView: View {
                 )
         )
         .contentShape(Rectangle())
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+        .onDrop(of: [.fileURL, .image, .url, .plainText], isTargeted: $isDropTargeted) { providers in
             model.accept(droppedProviders: providers)
         }
     }
@@ -283,15 +576,5 @@ struct APKPanelView: View {
 
     private func byteText(_ byteCount: Int) -> String {
         ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
-    }
-
-    private func chooseFile() {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.allowedContentTypes = ["apk", "png", "jpg", "jpeg", "heic", "heif", "gif", "tiff", "tif", "bmp", "webp"]
-            .compactMap { UTType(filenameExtension: $0) }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        model.accept(droppedFile: url)
     }
 }

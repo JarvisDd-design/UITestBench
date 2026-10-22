@@ -7,12 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04175C7DDAA69F033E9842A7 /* ScanCandidateSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AB137D4F586B2DBE8E1B7F /* ScanCandidateSelector.swift */; };
 		043E01DFDEF426C0BB1AC0AE /* ApkInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF029A75269AA7D3A28E6981 /* ApkInspector.swift */; };
 		04C5D90AF360248C67C83B09 /* AppRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0DAA13BB1A23B50CFD2261 /* AppRunnerTests.swift */; };
+		0576A878C5469EC564A55D3D /* ScreenRegionCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48FC3DB7E00D0FCB51CD7F02 /* ScreenRegionCapture.swift */; };
 		06255C39D87DFC6D9A89073F /* AVDStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C947B29B63319488C6AACFF /* AVDStore.swift */; };
+		07DB4FC6AE51E656458F8034 /* OrientedImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15BC250B6E96DBC6B6CDC29 /* OrientedImageTests.swift */; };
 		08B77135B85E5E978635BD81 /* MirrorInputController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D71400D48283AA2B7327AC /* MirrorInputController.swift */; };
 		08D24300F622A74745E194B8 /* ScreenshotCapturerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE1ECB6125D3A9AD17C4B07 /* ScreenshotCapturerTests.swift */; };
 		0B04506EB2421E8FDE7E2C65 /* ScrcpyInputSinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CD685C2B1691E2A4947F83 /* ScrcpyInputSinkTests.swift */; };
+		0BD935ED7A3C1CF4E25A1355 /* ScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8307B67EAC283C28FE351730 /* ScanSession.swift */; };
 		0E97F9ED6CC3EB5801AA0294 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59AEC7668D12A34E56D76ADA /* AppPaths.swift */; };
 		113912EA93EBA335177C7A5C /* MirrorEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EA62616ACADAB6987AC38D1 /* MirrorEngine.swift */; };
 		12100E7E85125C0A1276E22B /* KeyboardInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BA459E5683F2CE28BE6BC8 /* KeyboardInputTests.swift */; };
@@ -26,11 +30,14 @@
 		2037004C8F23E9D9D43BF446 /* ScrcpyServerCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CC23331F7B776162EBE57E3 /* ScrcpyServerCommand.swift */; };
 		211646D384E5237A78A4D106 /* RealApkAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A94FA2AD7C3DE8086622B2 /* RealApkAcceptanceTests.swift */; };
 		2193A8A6CB10A13D156E128A /* CommandRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE296CA54B8F33D9D9ADCDCC /* CommandRunnerTests.swift */; };
+		24E3AE1D31F97D551E98DAAD /* VisionBarcodeDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6223F9727A611CF6E7AEA02E /* VisionBarcodeDetectorTests.swift */; };
+		27896F0365BAE1A25A5F54BA /* ScannerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FECF98F75C6DFDE8285A086 /* ScannerPanel.swift */; };
 		27D86D1DFA056019C712FF5A /* ScrcpyServerJarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E17B23D8C7DAA2DAC660B52 /* ScrcpyServerJarTests.swift */; };
 		29601A566E86237626227EA2 /* AppLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1017DDC6C0C57FE6F1A7750F /* AppLifecycleTests.swift */; };
 		2AF3403A637546EF401F75BB /* CompatibilityChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F806948774ADE6107FF44D10 /* CompatibilityChecker.swift */; };
 		2DB86AE895DA0ED99E20EAD5 /* ScrcpyInputSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE745BEE3ECA13CB1320A78B /* ScrcpyInputSink.swift */; };
 		2ED1FE56D9FD761C6ECD7517 /* APKPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192D39C8C8780CCE28F793C1 /* APKPanelView.swift */; };
+		309F74F20409C7BBE43E4F32 /* ScanCandidateSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 771C3BBA459F1A2CF9ECC40D /* ScanCandidateSelectorTests.swift */; };
 		325857432B273657A32D56A5 /* SdkRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412BAEC4DE13B1962A512FC8 /* SdkRepositoryTests.swift */; };
 		326FAECD5635F3205ED8274D /* MirrorInputControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031A304A00AAE16E01B8F889 /* MirrorInputControllerTests.swift */; };
 		333AF6FC64C7826DD8B7679B /* TeamDeviceKeyProvisionerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF783421D1E9837D381C391 /* TeamDeviceKeyProvisionerTests.swift */; };
@@ -47,11 +54,13 @@
 		48800CC09FEA2E40FBB58605 /* CompatibilityCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 480807C78ABB3FD921D7A7AD /* CompatibilityCheckerTests.swift */; };
 		48B40039FA608742CE5677E2 /* ScrcpyMirrorSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D33B1436750A867A7DEDAE2F /* ScrcpyMirrorSource.swift */; };
 		4ABB741DF9448834808995AB /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5557E3A0E3CA0BA619D06C4 /* AppPathsTests.swift */; };
+		4D841E9C730FA3CECFB24B34 /* BarcodeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A641EB575915986CAAC4AF4 /* BarcodeDetector.swift */; };
 		4F7599FBBB1576085DE7C676 /* SocketByteStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB74EE9FB5C45718DD2BF476 /* SocketByteStream.swift */; };
 		505880E0E95A517C978888B6 /* QRCodeDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA04901C895DE6484654B8B5 /* QRCodeDecoderTests.swift */; };
 		506CE79B24F7C541D19CF773 /* AVDConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 484DBA536FB800767AA87B41 /* AVDConfigurationTests.swift */; };
 		548EA5C73A57BF136C02A566 /* SessionCleaner.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDA96FF43B826947D61BA196 /* SessionCleaner.swift */; };
 		563828812C0335F0A9C6B48B /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A666202AC98A2A8726706 /* CommandRunner.swift */; };
+		573084655F4D92C49C097D60 /* ScreenScannerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AAC346BF4A6F373C6B66751 /* ScreenScannerModel.swift */; };
 		591C32CA1AF6304AFA6F294D /* APKAcquirerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC96D2C7754FED57A7C251A2 /* APKAcquirerTests.swift */; };
 		5BD15CA1CC3E1B52FCFCF3C5 /* RealAppLifecycleAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3835177AB98A243175C7887 /* RealAppLifecycleAcceptanceTests.swift */; };
 		5EE2E03781EAA81EDA066698 /* ScrollNotchAccumulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E871A89C9B2C73827441ACF /* ScrollNotchAccumulator.swift */; };
@@ -64,6 +73,7 @@
 		67AA7AE8DEB765D16F8F2AEB /* libUITestBenchCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 506FDE96EA9940A5B432819A /* libUITestBenchCore.a */; };
 		6991207DDAB82AC9E2C7B66C /* SdkInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7423D29D14767EBCAB6FE3DC /* SdkInstaller.swift */; };
 		6B53924DCAE126D07F1E94B7 /* ScreenshotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC643CA182A0FEDAFADD4AE8 /* ScreenshotModel.swift */; };
+		6B5C69C59A7A5C9081BBBC8C /* VisionBarcodeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E85C9B1C32104E32F66B68 /* VisionBarcodeDetector.swift */; };
 		6C50321E5549997CE8A730E7 /* APKAcquirer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4888ACC51650E2E6CF67D0D /* APKAcquirer.swift */; };
 		721F563E152002BCA3686AAD /* libUITestBenchCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 506FDE96EA9940A5B432819A /* libUITestBenchCore.a */; };
 		73D8BCA9326D7B0A9E521199 /* ZipArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC4743C3F73CF4782110BCD /* ZipArchive.swift */; };
@@ -89,12 +99,16 @@
 		957BBDDC47BB14A5A7023258 /* SessionShutdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75CCD9696FCAF4F3BBF4F0F /* SessionShutdownTests.swift */; };
 		994C43969487CA615777A7AA /* ScrollNotchAccumulatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DD60B5ABEDD2BF4007A2808 /* ScrollNotchAccumulatorTests.swift */; };
 		9E48BA80F8BC9D63CAD7F0D3 /* DragScrollSinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5B0016C23CF995D5E260B7 /* DragScrollSinkTests.swift */; };
+		A2989EEDFF528831A329DC49 /* OrientedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011208E228B0990E73C304F6 /* OrientedImage.swift */; };
+		A2F77FEC33EFF431AA85FFDA /* ScreenCapturePermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573CE72403DDDFEA4BE6BAB0 /* ScreenCapturePermission.swift */; };
+		A444D26C5D172EAD90571B8F /* CaptureRegionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B62B23C1972C6B67044DDE3 /* CaptureRegionTests.swift */; };
 		A4849DDF28D2EAA213E99020 /* AXmlParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0DE1DAF34CAD39FE84E4861 /* AXmlParserTests.swift */; };
 		A57266C793683F949FCA0606 /* RealArchiveAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1438F2C004DB1437C36F5D6A /* RealArchiveAcceptanceTests.swift */; };
 		A80A8FA0E6162111E466AC91 /* EmulatorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B09A1CBF7A112334C1CA1DF /* EmulatorController.swift */; };
 		A849902E338B48F0791F7952 /* H264DecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B7B42D9F51CF07E919661E /* H264DecoderTests.swift */; };
 		A925200359C640BA0C4CB0A4 /* ZipReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3161076D34D5978BB576A8C /* ZipReaderTests.swift */; };
 		AB6119A348E4F1C04012D79F /* ChecksumTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3870012E508A5DFA6405279D /* ChecksumTests.swift */; };
+		ABC1F336B1C47DAA115A52FE /* DownloadLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C1BD635D2C09C5C8C0CD67 /* DownloadLinkTests.swift */; };
 		ACB526DF52774CFC59C7AB90 /* ZipReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD7EBD0F61A1A34A2C9E5C /* ZipReader.swift */; };
 		ADED24AF9C3C9F275546EEB8 /* AndroidManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C81A3525006836E7A190997 /* AndroidManifest.swift */; };
 		B0A638314DC0F03D4079BE43 /* ZipArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C23B8131879A22B99A90E0BA /* ZipArchiveTests.swift */; };
@@ -117,9 +131,11 @@
 		C06C768295DA4145BF8F4615 /* SdkInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3CEC10F9DE2F01A6DE50B5 /* SdkInstallerTests.swift */; };
 		C51E1D0B24F2773F1359A9B4 /* APKSourceResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F5618A1F1C020B72B58025 /* APKSourceResolverTests.swift */; };
 		C5DFC6F60A0B5EC74053237C /* AnnotationDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8371A81CFC7619D19103FC /* AnnotationDocumentTests.swift */; };
+		C5FB584FF26A7F7FD8213865 /* ScanHitGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D36D0DF8F0501A1E9F0253C /* ScanHitGateTests.swift */; };
 		C6010F5DF131848E49C7B3B8 /* AnnotationEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521912AEC5CB58D314F5408E /* AnnotationEditorView.swift */; };
 		CDF891BDF3BF389EAC95C243 /* VideoPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA3D24D74B73DAA5AA9263A /* VideoPipelineTests.swift */; };
 		D3FE2C6D76C9DB718767126F /* RealScrcpyAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123770C9FCD530885D0A42D1 /* RealScrcpyAcceptanceTests.swift */; };
+		D51E3FA56E41FC9710475127 /* ScanHitGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CEB4524452720743157BF23 /* ScanHitGate.swift */; };
 		D7419269DF8A2064083AD15D /* DeviceProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 343BD871C8CE7B237D807B80 /* DeviceProfile.swift */; };
 		D76AB1FB05147D3A11E20C6E /* VideoSampleBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13391D6A5D5EDFB50E404CD /* VideoSampleBuffer.swift */; };
 		D896F1EE12D1D5E6ECE25861 /* Checksum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D2E06E3181E4143FC652652 /* Checksum.swift */; };
@@ -129,11 +145,14 @@
 		DBBB71A2A1686322BB9DD3F3 /* SdkInstallPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFA8CCFB5761FCD3D04A01AC /* SdkInstallPlanTests.swift */; };
 		DE532E079CAD96E01A257AE2 /* ScrcpyVideoReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A6E2C070D192A24758F5DD /* ScrcpyVideoReader.swift */; };
 		E42C8DB6B8C9144FD4E6057A /* SessionShutdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03986DCD1956BAC91D1CD82 /* SessionShutdown.swift */; };
+		E4808A1CFF067BF8711B6E1F /* ScanSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53A6920491DED804275624B /* ScanSessionTests.swift */; };
 		E5911717DF5871B00E8AF5E8 /* DeviceIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74BA1BAC2A9F78340E64C8CB /* DeviceIdentityTests.swift */; };
+		EA577AA81E419F55EF2BA877 /* CaptureRegionCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89165B254717DDA61876A36D /* CaptureRegionCalculator.swift */; };
 		EFE33D91E1B694B088BBC33A /* RealEnvironmentAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F865D658F6636A25BBE6A2F3 /* RealEnvironmentAcceptanceTests.swift */; };
 		F210DA3A587FE9A68479750A /* ZipFixtureBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14422F561821796E84006DC8 /* ZipFixtureBuilder.swift */; };
 		F24279F88E82933A0F3CDA10 /* APKFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC82E532B66D32A26D135DBA /* APKFixture.swift */; };
 		FBBF2FCA04AC5DCB5192BD44 /* SessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF09C011F2688675CBCBB20F /* SessionModel.swift */; };
+		FC637DB1C7092FE320AC3DF7 /* DownloadLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562060A57750BCA2880BD874 /* DownloadLink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -156,11 +175,13 @@
 /* Begin PBXFileReference section */
 		0005C32954AAE290200EDCFD /* ScrcpyControlMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyControlMessage.swift; sourceTree = "<group>"; };
 		0106AEEBFAC11A8EBFD68A34 /* CoordinateMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinateMapperTests.swift; sourceTree = "<group>"; };
+		011208E228B0990E73C304F6 /* OrientedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientedImage.swift; sourceTree = "<group>"; };
 		031A304A00AAE16E01B8F889 /* MirrorInputControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorInputControllerTests.swift; sourceTree = "<group>"; };
 		05BA459E5683F2CE28BE6BC8 /* KeyboardInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardInputTests.swift; sourceTree = "<group>"; };
 		06D71400D48283AA2B7327AC /* MirrorInputController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorInputController.swift; sourceTree = "<group>"; };
 		07D70E74B78488A2B905C082 /* UITestBenchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestBenchApp.swift; sourceTree = "<group>"; };
 		0A8D48698E785C93B234C81C /* Annotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
+		0AAC346BF4A6F373C6B66751 /* ScreenScannerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenScannerModel.swift; sourceTree = "<group>"; };
 		1017DDC6C0C57FE6F1A7750F /* AppLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleTests.swift; sourceTree = "<group>"; };
 		10A6E2C070D192A24758F5DD /* ScrcpyVideoReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyVideoReader.swift; sourceTree = "<group>"; };
 		1171DB7F3C5EE2003C290F80 /* SdkRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkRepository.swift; sourceTree = "<group>"; };
@@ -179,9 +200,11 @@
 		27A94FA2AD7C3DE8086622B2 /* RealApkAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealApkAcceptanceTests.swift; sourceTree = "<group>"; };
 		27E368B83C7BBB7A3910DE14 /* RealSdkRepositoryAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealSdkRepositoryAcceptanceTests.swift; sourceTree = "<group>"; };
 		2EA62616ACADAB6987AC38D1 /* MirrorEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorEngine.swift; sourceTree = "<group>"; };
+		2FECF98F75C6DFDE8285A086 /* ScannerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerPanel.swift; sourceTree = "<group>"; };
 		300DAC9B39F20F983782F3F9 /* DiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsTests.swift; sourceTree = "<group>"; };
 		343BD871C8CE7B237D807B80 /* DeviceProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProfile.swift; sourceTree = "<group>"; };
 		371E6BADB5F73B0447A0A4B3 /* AXmlParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXmlParser.swift; sourceTree = "<group>"; };
+		37AB137D4F586B2DBE8E1B7F /* ScanCandidateSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCandidateSelector.swift; sourceTree = "<group>"; };
 		3870012E508A5DFA6405279D /* ChecksumTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecksumTests.swift; sourceTree = "<group>"; };
 		398A666202AC98A2A8726706 /* CommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandRunner.swift; sourceTree = "<group>"; };
 		3DB91106B67C4E6F34C04B94 /* ScrcpySessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpySessionTests.swift; sourceTree = "<group>"; };
@@ -189,6 +212,7 @@
 		480807C78ABB3FD921D7A7AD /* CompatibilityCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityCheckerTests.swift; sourceTree = "<group>"; };
 		484DBA536FB800767AA87B41 /* AVDConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVDConfigurationTests.swift; sourceTree = "<group>"; };
 		48E021674751357DE9B2F51D /* RealControlAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealControlAcceptanceTests.swift; sourceTree = "<group>"; };
+		48FC3DB7E00D0FCB51CD7F02 /* ScreenRegionCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRegionCapture.swift; sourceTree = "<group>"; };
 		4B0CA772D7BE9EAD2633C3DE /* AndroidManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AndroidManifestTests.swift; sourceTree = "<group>"; };
 		4C486F066B80FE1BDE909132 /* QRCodeFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeFixture.swift; sourceTree = "<group>"; };
 		4CE1ECB6125D3A9AD17C4B07 /* ScreenshotCapturerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotCapturerTests.swift; sourceTree = "<group>"; };
@@ -197,26 +221,35 @@
 		517A002FCB53350F3FE24764 /* AppResources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppResources.swift; sourceTree = "<group>"; };
 		521912AEC5CB58D314F5408E /* AnnotationEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationEditorView.swift; sourceTree = "<group>"; };
 		52CD7EBD0F61A1A34A2C9E5C /* ZipReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipReader.swift; sourceTree = "<group>"; };
+		562060A57750BCA2880BD874 /* DownloadLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadLink.swift; sourceTree = "<group>"; };
+		573CE72403DDDFEA4BE6BAB0 /* ScreenCapturePermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCapturePermission.swift; sourceTree = "<group>"; };
 		578D90C69DF99AB33B9CF206 /* ScrcpySession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpySession.swift; sourceTree = "<group>"; };
 		5883FE420BFFF705DBD6DD8F /* H264.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264.swift; sourceTree = "<group>"; };
 		59AEC7668D12A34E56D76ADA /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		5CC23331F7B776162EBE57E3 /* ScrcpyServerCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyServerCommand.swift; sourceTree = "<group>"; };
+		5D36D0DF8F0501A1E9F0253C /* ScanHitGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHitGateTests.swift; sourceTree = "<group>"; };
+		6223F9727A611CF6E7AEA02E /* VisionBarcodeDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionBarcodeDetectorTests.swift; sourceTree = "<group>"; };
 		62DC9284D14CFA7542A8AF4A /* AVDConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVDConfiguration.swift; sourceTree = "<group>"; };
 		6A9208401C0A676EFB77F6E2 /* AnnotationRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationRenderer.swift; sourceTree = "<group>"; };
 		6C81A3525006836E7A190997 /* AndroidManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AndroidManifest.swift; sourceTree = "<group>"; };
+		6CEB4524452720743157BF23 /* ScanHitGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHitGate.swift; sourceTree = "<group>"; };
 		6D163609181E778E9CFE9F76 /* UITestBenchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UITestBenchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D86960AD13DA175D12C3F7C /* AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycle.swift; sourceTree = "<group>"; };
 		7423D29D14767EBCAB6FE3DC /* SdkInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkInstaller.swift; sourceTree = "<group>"; };
 		74BA1BAC2A9F78340E64C8CB /* DeviceIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentityTests.swift; sourceTree = "<group>"; };
+		771C3BBA459F1A2CF9ECC40D /* ScanCandidateSelectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCandidateSelectorTests.swift; sourceTree = "<group>"; };
 		771D929A2A9C704E3484A158 /* EmulatorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorControllerTests.swift; sourceTree = "<group>"; };
 		77467183FFB6FB4B46E6ED1A /* RealEmulatorAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealEmulatorAcceptanceTests.swift; sourceTree = "<group>"; };
 		78DED1CC650A360F38D179D0 /* MirrorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorModel.swift; sourceTree = "<group>"; };
+		7A641EB575915986CAAC4AF4 /* BarcodeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeDetector.swift; sourceTree = "<group>"; };
 		7B09A1CBF7A112334C1CA1DF /* EmulatorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorController.swift; sourceTree = "<group>"; };
 		7C24A10B0D4D61D9A6500D81 /* UITestBenchCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITestBenchCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CBFCB2B5D9195CF22CA5737 /* SdkInstallPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkInstallPlan.swift; sourceTree = "<group>"; };
 		7F14894FBB39BE4338E7A008 /* AnnotationRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationRendererTests.swift; sourceTree = "<group>"; };
 		7F3CEC10F9DE2F01A6DE50B5 /* SdkInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkInstallerTests.swift; sourceTree = "<group>"; };
 		80F5618A1F1C020B72B58025 /* APKSourceResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APKSourceResolverTests.swift; sourceTree = "<group>"; };
+		8307B67EAC283C28FE351730 /* ScanSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSession.swift; sourceTree = "<group>"; };
+		89165B254717DDA61876A36D /* CaptureRegionCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureRegionCalculator.swift; sourceTree = "<group>"; };
 		8CFFBEF70271980824335A83 /* scrcpy-server.jar */ = {isa = PBXFileReference; lastKnownFileType = archive.jar; path = "scrcpy-server.jar"; sourceTree = "<group>"; };
 		8D89180DFE14B5098571789E /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		8E17B23D8C7DAA2DAC660B52 /* ScrcpyServerJarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyServerJarTests.swift; sourceTree = "<group>"; };
@@ -228,11 +261,14 @@
 		99A9C02FC29EE6516801E307 /* RealEnvironmentSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealEnvironmentSupport.swift; sourceTree = "<group>"; };
 		9A0DAA13BB1A23B50CFD2261 /* AppRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRunnerTests.swift; sourceTree = "<group>"; };
 		9A83F2C6DEE028970F3C9E1A /* ScreenshotCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotCapturer.swift; sourceTree = "<group>"; };
+		9B62B23C1972C6B67044DDE3 /* CaptureRegionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureRegionTests.swift; sourceTree = "<group>"; };
 		9D2E06E3181E4143FC652652 /* Checksum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checksum.swift; sourceTree = "<group>"; };
 		9EF783421D1E9837D381C391 /* TeamDeviceKeyProvisionerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamDeviceKeyProvisionerTests.swift; sourceTree = "<group>"; };
 		A0DE1DAF34CAD39FE84E4861 /* AXmlParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXmlParserTests.swift; sourceTree = "<group>"; };
+		A0E85C9B1C32104E32F66B68 /* VisionBarcodeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionBarcodeDetector.swift; sourceTree = "<group>"; };
 		A10844680A09FF7CABD3D664 /* ScrcpyFramePump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyFramePump.swift; sourceTree = "<group>"; };
 		A30192955BF77C18FDCD9350 /* KeyboardInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardInput.swift; sourceTree = "<group>"; };
+		A53A6920491DED804275624B /* ScanSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSessionTests.swift; sourceTree = "<group>"; };
 		A596C0C1470635271DE3F62B /* ScrcpyProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyProtocol.swift; sourceTree = "<group>"; };
 		AB5B0016C23CF995D5E260B7 /* DragScrollSinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragScrollSinkTests.swift; sourceTree = "<group>"; };
 		AD25CFE507A18E5F7A5E2ACF /* DragScrollSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragScrollSink.swift; sourceTree = "<group>"; };
@@ -253,10 +289,12 @@
 		CCF0CD66CBC6CD5023A2585E /* FileDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDownloader.swift; sourceTree = "<group>"; };
 		CE745BEE3ECA13CB1320A78B /* ScrcpyInputSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyInputSink.swift; sourceTree = "<group>"; };
 		D027AD74D6BE26B3646DBF07 /* TeamDeviceKeyProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamDeviceKeyProvisioner.swift; sourceTree = "<group>"; };
+		D15BC250B6E96DBC6B6CDC29 /* OrientedImageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientedImageTests.swift; sourceTree = "<group>"; };
 		D3161076D34D5978BB576A8C /* ZipReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipReaderTests.swift; sourceTree = "<group>"; };
 		D33B1436750A867A7DEDAE2F /* ScrcpyMirrorSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyMirrorSource.swift; sourceTree = "<group>"; };
 		D37FE7A297D0FEE8CBDF6241 /* DownloaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloaderTests.swift; sourceTree = "<group>"; };
 		D4888ACC51650E2E6CF67D0D /* APKAcquirer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APKAcquirer.swift; sourceTree = "<group>"; };
+		D4C1BD635D2C09C5C8C0CD67 /* DownloadLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadLinkTests.swift; sourceTree = "<group>"; };
 		D50E220C791014DFACD51456 /* scrcpy-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "scrcpy-LICENSE.txt"; sourceTree = "<group>"; };
 		D638293822DD0DCA6BD418EB /* SdkBootstrapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkBootstrapTests.swift; sourceTree = "<group>"; };
 		D85C386CC115A5EB060FDB47 /* SdkBootstrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkBootstrap.swift; sourceTree = "<group>"; };
@@ -319,7 +357,9 @@
 				62DC9284D14CFA7542A8AF4A /* AVDConfiguration.swift */,
 				1C947B29B63319488C6AACFF /* AVDStore.swift */,
 				371E6BADB5F73B0447A0A4B3 /* AXmlParser.swift */,
+				7A641EB575915986CAAC4AF4 /* BarcodeDetector.swift */,
 				E199F77DD626888074327009 /* ByteStream.swift */,
+				89165B254717DDA61876A36D /* CaptureRegionCalculator.swift */,
 				9D2E06E3181E4143FC652652 /* Checksum.swift */,
 				398A666202AC98A2A8726706 /* CommandRunner.swift */,
 				F806948774ADE6107FF44D10 /* CompatibilityChecker.swift */,
@@ -327,6 +367,7 @@
 				95FBDA488C31D0987641395F /* DeviceIdentity.swift */,
 				343BD871C8CE7B237D807B80 /* DeviceProfile.swift */,
 				8D89180DFE14B5098571789E /* Diagnostics.swift */,
+				562060A57750BCA2880BD874 /* DownloadLink.swift */,
 				AD25CFE507A18E5F7A5E2ACF /* DragScrollSink.swift */,
 				7B09A1CBF7A112334C1CA1DF /* EmulatorController.swift */,
 				CCF0CD66CBC6CD5023A2585E /* FileDownloader.swift */,
@@ -335,7 +376,11 @@
 				A30192955BF77C18FDCD9350 /* KeyboardInput.swift */,
 				2EA62616ACADAB6987AC38D1 /* MirrorEngine.swift */,
 				06D71400D48283AA2B7327AC /* MirrorInputController.swift */,
+				011208E228B0990E73C304F6 /* OrientedImage.swift */,
 				EDBE9487C9C36EF6F0681E01 /* QRCodeDecoder.swift */,
+				37AB137D4F586B2DBE8E1B7F /* ScanCandidateSelector.swift */,
+				6CEB4524452720743157BF23 /* ScanHitGate.swift */,
+				8307B67EAC283C28FE351730 /* ScanSession.swift */,
 				0005C32954AAE290200EDCFD /* ScrcpyControlMessage.swift */,
 				C70421B4C836C17D4DF74173 /* ScrcpyDecoder.swift */,
 				A10844680A09FF7CABD3D664 /* ScrcpyFramePump.swift */,
@@ -358,6 +403,7 @@
 				DB74EE9FB5C45718DD2BF476 /* SocketByteStream.swift */,
 				D027AD74D6BE26B3646DBF07 /* TeamDeviceKeyProvisioner.swift */,
 				E13391D6A5D5EDFB50E404CD /* VideoSampleBuffer.swift */,
+				A0E85C9B1C32104E32F66B68 /* VisionBarcodeDetector.swift */,
 				FEC4743C3F73CF4782110BCD /* ZipArchive.swift */,
 				52CD7EBD0F61A1A34A2C9E5C /* ZipReader.swift */,
 			);
@@ -411,6 +457,17 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		693F8C1D62BE25EA160CAC50 /* Scanner */ = {
+			isa = PBXGroup;
+			children = (
+				2FECF98F75C6DFDE8285A086 /* ScannerPanel.swift */,
+				573CE72403DDDFEA4BE6BAB0 /* ScreenCapturePermission.swift */,
+				48FC3DB7E00D0FCB51CD7F02 /* ScreenRegionCapture.swift */,
+				0AAC346BF4A6F373C6B66751 /* ScreenScannerModel.swift */,
+			);
+			path = Scanner;
+			sourceTree = "<group>";
+		};
 		ADA86A7BF25220E914EA0A41 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
@@ -434,6 +491,7 @@
 				9A0DAA13BB1A23B50CFD2261 /* AppRunnerTests.swift */,
 				484DBA536FB800767AA87B41 /* AVDConfigurationTests.swift */,
 				A0DE1DAF34CAD39FE84E4861 /* AXmlParserTests.swift */,
+				9B62B23C1972C6B67044DDE3 /* CaptureRegionTests.swift */,
 				3870012E508A5DFA6405279D /* ChecksumTests.swift */,
 				DE296CA54B8F33D9D9ADCDCC /* CommandRunnerTests.swift */,
 				480807C78ABB3FD921D7A7AD /* CompatibilityCheckerTests.swift */,
@@ -441,12 +499,14 @@
 				74BA1BAC2A9F78340E64C8CB /* DeviceIdentityTests.swift */,
 				300DAC9B39F20F983782F3F9 /* DiagnosticsTests.swift */,
 				D37FE7A297D0FEE8CBDF6241 /* DownloaderTests.swift */,
+				D4C1BD635D2C09C5C8C0CD67 /* DownloadLinkTests.swift */,
 				AB5B0016C23CF995D5E260B7 /* DragScrollSinkTests.swift */,
 				771D929A2A9C704E3484A158 /* EmulatorControllerTests.swift */,
 				E5B7B42D9F51CF07E919661E /* H264DecoderTests.swift */,
 				05BA459E5683F2CE28BE6BC8 /* KeyboardInputTests.swift */,
 				90F1CE37A81D8E00C23E5554 /* MirrorEngineTests.swift */,
 				031A304A00AAE16E01B8F889 /* MirrorInputControllerTests.swift */,
+				D15BC250B6E96DBC6B6CDC29 /* OrientedImageTests.swift */,
 				CA04901C895DE6484654B8B5 /* QRCodeDecoderTests.swift */,
 				27A94FA2AD7C3DE8086622B2 /* RealApkAcceptanceTests.swift */,
 				E3835177AB98A243175C7887 /* RealAppLifecycleAcceptanceTests.swift */,
@@ -458,6 +518,9 @@
 				F837688C7D1ABAE41EE285F9 /* RealMirrorAcceptanceTests.swift */,
 				123770C9FCD530885D0A42D1 /* RealScrcpyAcceptanceTests.swift */,
 				27E368B83C7BBB7A3910DE14 /* RealSdkRepositoryAcceptanceTests.swift */,
+				771C3BBA459F1A2CF9ECC40D /* ScanCandidateSelectorTests.swift */,
+				5D36D0DF8F0501A1E9F0253C /* ScanHitGateTests.swift */,
+				A53A6920491DED804275624B /* ScanSessionTests.swift */,
 				23CD685C2B1691E2A4947F83 /* ScrcpyInputSinkTests.swift */,
 				B66E008F6A28A41389491A27 /* ScrcpyMirrorSourceTests.swift */,
 				BB9DDB1A8FD215F4D5C99B2F /* ScrcpyProtocolTests.swift */,
@@ -475,6 +538,7 @@
 				12EB4C557699E1D5001B2735 /* SocketAndVideoReaderTests.swift */,
 				9EF783421D1E9837D381C391 /* TeamDeviceKeyProvisionerTests.swift */,
 				FCA3D24D74B73DAA5AA9263A /* VideoPipelineTests.swift */,
+				6223F9727A611CF6E7AEA02E /* VisionBarcodeDetectorTests.swift */,
 				C23B8131879A22B99A90E0BA /* ZipArchiveTests.swift */,
 				D3161076D34D5978BB576A8C /* ZipReaderTests.swift */,
 				1D2FB08677131376C80323AA /* Support */,
@@ -498,6 +562,7 @@
 				DBBF2C0994E3760B919BBF45 /* SetupView.swift */,
 				07D70E74B78488A2B905C082 /* UITestBenchApp.swift */,
 				549CCC6CC64AD5C2F0F96537 /* Resources */,
+				693F8C1D62BE25EA160CAC50 /* Scanner */,
 			);
 			path = UITestBenchApp;
 			sourceTree = "<group>";
@@ -638,6 +703,10 @@
 				3DB66AB61016323ACC44AB0B /* DiagnosticsView.swift in Sources */,
 				BAC77E69458E2A24F6B18273 /* MirrorModel.swift in Sources */,
 				4300C4DEC5AB4668191CD43B /* RunModel.swift in Sources */,
+				27896F0365BAE1A25A5F54BA /* ScannerPanel.swift in Sources */,
+				A2F77FEC33EFF431AA85FFDA /* ScreenCapturePermission.swift in Sources */,
+				0576A878C5469EC564A55D3D /* ScreenRegionCapture.swift in Sources */,
+				573084655F4D92C49C097D60 /* ScreenScannerModel.swift in Sources */,
 				6B53924DCAE126D07F1E94B7 /* ScreenshotModel.swift in Sources */,
 				FBBF2FCA04AC5DCB5192BD44 /* SessionModel.swift in Sources */,
 				BA2AAC59611324BCD4E90E4D /* SetupView.swift in Sources */,
@@ -661,7 +730,9 @@
 				DB3AE6D162BFD19ED6FFEAAF /* AppLifecycle.swift in Sources */,
 				0E97F9ED6CC3EB5801AA0294 /* AppPaths.swift in Sources */,
 				BFDFE830CC61EC7E5109DE8C /* AppRunner.swift in Sources */,
+				4D841E9C730FA3CECFB24B34 /* BarcodeDetector.swift in Sources */,
 				DAFC6B96E7543244AE03F2BF /* ByteStream.swift in Sources */,
+				EA577AA81E419F55EF2BA877 /* CaptureRegionCalculator.swift in Sources */,
 				D896F1EE12D1D5E6ECE25861 /* Checksum.swift in Sources */,
 				563828812C0335F0A9C6B48B /* CommandRunner.swift in Sources */,
 				2AF3403A637546EF401F75BB /* CompatibilityChecker.swift in Sources */,
@@ -669,6 +740,7 @@
 				7B10D9DE662ACE47C160EC16 /* DeviceIdentity.swift in Sources */,
 				D7419269DF8A2064083AD15D /* DeviceProfile.swift in Sources */,
 				B69490AF9094667810B885D9 /* Diagnostics.swift in Sources */,
+				FC637DB1C7092FE320AC3DF7 /* DownloadLink.swift in Sources */,
 				81610EBD263178A1BE31ED32 /* DragScrollSink.swift in Sources */,
 				A80A8FA0E6162111E466AC91 /* EmulatorController.swift in Sources */,
 				BFD5A79E03F10B0081251909 /* FileDownloader.swift in Sources */,
@@ -677,7 +749,11 @@
 				16576CE40DADB695A27C61C5 /* KeyboardInput.swift in Sources */,
 				113912EA93EBA335177C7A5C /* MirrorEngine.swift in Sources */,
 				08B77135B85E5E978635BD81 /* MirrorInputController.swift in Sources */,
+				A2989EEDFF528831A329DC49 /* OrientedImage.swift in Sources */,
 				8B48274724DDB1896B91895C /* QRCodeDecoder.swift in Sources */,
+				04175C7DDAA69F033E9842A7 /* ScanCandidateSelector.swift in Sources */,
+				D51E3FA56E41FC9710475127 /* ScanHitGate.swift in Sources */,
+				0BD935ED7A3C1CF4E25A1355 /* ScanSession.swift in Sources */,
 				3DD35B5EBBA5A16DFDA3A105 /* ScrcpyControlMessage.swift in Sources */,
 				7542D6F8E27D03E6E4F2F44A /* ScrcpyDecoder.swift in Sources */,
 				1BFF4FB3761EC99C858F2879 /* ScrcpyFramePump.swift in Sources */,
@@ -700,6 +776,7 @@
 				4F7599FBBB1576085DE7C676 /* SocketByteStream.swift in Sources */,
 				B4AC491D16D28ACDBDEF9797 /* TeamDeviceKeyProvisioner.swift in Sources */,
 				D76AB1FB05147D3A11E20C6E /* VideoSampleBuffer.swift in Sources */,
+				6B5C69C59A7A5C9081BBBC8C /* VisionBarcodeDetector.swift in Sources */,
 				73D8BCA9326D7B0A9E521199 /* ZipArchive.swift in Sources */,
 				ACB526DF52774CFC59C7AB90 /* ZipReader.swift in Sources */,
 			);
@@ -722,12 +799,14 @@
 				29601A566E86237626227EA2 /* AppLifecycleTests.swift in Sources */,
 				4ABB741DF9448834808995AB /* AppPathsTests.swift in Sources */,
 				04C5D90AF360248C67C83B09 /* AppRunnerTests.swift in Sources */,
+				A444D26C5D172EAD90571B8F /* CaptureRegionTests.swift in Sources */,
 				AB6119A348E4F1C04012D79F /* ChecksumTests.swift in Sources */,
 				2193A8A6CB10A13D156E128A /* CommandRunnerTests.swift in Sources */,
 				48800CC09FEA2E40FBB58605 /* CompatibilityCheckerTests.swift in Sources */,
 				380EBC04A5FC4CE241F0BDFB /* CoordinateMapperTests.swift in Sources */,
 				E5911717DF5871B00E8AF5E8 /* DeviceIdentityTests.swift in Sources */,
 				8D218B9790C368471490643C /* DiagnosticsTests.swift in Sources */,
+				ABC1F336B1C47DAA115A52FE /* DownloadLinkTests.swift in Sources */,
 				7638BED1C9A346900AA4D26E /* DownloaderTests.swift in Sources */,
 				9E48BA80F8BC9D63CAD7F0D3 /* DragScrollSinkTests.swift in Sources */,
 				3C38F1F764226E279F6E52A9 /* EmulatorControllerTests.swift in Sources */,
@@ -735,6 +814,7 @@
 				12100E7E85125C0A1276E22B /* KeyboardInputTests.swift in Sources */,
 				B207A9506E7ECAA3E375A778 /* MirrorEngineTests.swift in Sources */,
 				326FAECD5635F3205ED8274D /* MirrorInputControllerTests.swift in Sources */,
+				07DB4FC6AE51E656458F8034 /* OrientedImageTests.swift in Sources */,
 				505880E0E95A517C978888B6 /* QRCodeDecoderTests.swift in Sources */,
 				BE116AEB7D1599633FBAFD8A /* QRCodeFixture.swift in Sources */,
 				211646D384E5237A78A4D106 /* RealApkAcceptanceTests.swift in Sources */,
@@ -747,6 +827,9 @@
 				447E6A1891AD087F41F296E5 /* RealMirrorAcceptanceTests.swift in Sources */,
 				D3FE2C6D76C9DB718767126F /* RealScrcpyAcceptanceTests.swift in Sources */,
 				925C293B09560D085031928E /* RealSdkRepositoryAcceptanceTests.swift in Sources */,
+				309F74F20409C7BBE43E4F32 /* ScanCandidateSelectorTests.swift in Sources */,
+				C5FB584FF26A7F7FD8213865 /* ScanHitGateTests.swift in Sources */,
+				E4808A1CFF067BF8711B6E1F /* ScanSessionTests.swift in Sources */,
 				0B04506EB2421E8FDE7E2C65 /* ScrcpyInputSinkTests.swift in Sources */,
 				1984BA65B784139D440640F6 /* ScrcpyMirrorSourceTests.swift in Sources */,
 				875309248D856D0315A696C3 /* ScrcpyProtocolTests.swift in Sources */,
@@ -764,6 +847,7 @@
 				BC8BD25DBBAD9B1D3B7BC989 /* SocketAndVideoReaderTests.swift in Sources */,
 				333AF6FC64C7826DD8B7679B /* TeamDeviceKeyProvisionerTests.swift in Sources */,
 				CDF891BDF3BF389EAC95C243 /* VideoPipelineTests.swift in Sources */,
+				24E3AE1D31F97D551E98DAAD /* VisionBarcodeDetectorTests.swift in Sources */,
 				B0A638314DC0F03D4079BE43 /* ZipArchiveTests.swift in Sources */,
 				F210DA3A587FE9A68479750A /* ZipFixtureBuilder.swift in Sources */,
 				A925200359C640BA0C4CB0A4 /* ZipReaderTests.swift in Sources */,
@@ -838,7 +922,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -896,7 +980,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

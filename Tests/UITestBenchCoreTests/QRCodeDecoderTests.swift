@@ -42,4 +42,68 @@ final class QRCodeDecoderTests: XCTestCase {
     func testReturnsNilForGarbageData() {
         XCTAssertNil(QRCodeDecoder.downloadURL(from: Data("not an image".utf8)))
     }
+
+    /// 手机截图可能带 EXIF 方向；镜像方向最能暴露「只读像素、没应用方向」。
+    func testAppliesEXIFOrientation() throws {
+        let data = try QRCodeFixture.jpegData(
+            encoding: "https://example.com/oriented.apk",
+            orientation: .leftMirrored
+        )
+
+        XCTAssertEqual(
+            QRCodeDecoder.downloadURL(from: data)?.absoluteString,
+            "https://example.com/oriented.apk"
+        )
+    }
+
+    /// 聊天工具转发过的截图常被压缩得很厉害。
+    func testDecodesACompressedJPEG() throws {
+        let data = try QRCodeFixture.jpegData(
+            encoding: "https://example.com/compressed.apk",
+            quality: 0.25
+        )
+
+        XCTAssertEqual(
+            QRCodeDecoder.downloadURL(from: data)?.absoluteString,
+            "https://example.com/compressed.apk"
+        )
+    }
+
+    /// 一张截图里同时有两个下载码时，静态路径取离画面中心最近的。
+    func testChoosesTheNearestValidLinkInAMultiCodeImage() throws {
+        let image = try QRCodeFixture.compositeCGImage(
+            codes: [
+                ("https://example.com/far.apk", CGRect(x: 30, y: 30, width: 140, height: 140)),
+                ("https://example.com/near.apk", CGRect(x: 330, y: 330, width: 140, height: 140)),
+            ],
+            canvas: CGSize(width: 800, height: 800)
+        )
+        let data = try QRCodeFixture.pngData(of: image)
+
+        XCTAssertEqual(
+            QRCodeDecoder.downloadURL(from: data)?.absoluteString,
+            "https://example.com/near.apk"
+        )
+    }
+
+    /// 打不开的图片要能和「图里没有码」区分开，交给上层给不同提示。
+    func testUnreadableDataThrows() {
+        XCTAssertThrowsError(try QRCodeDecoder.payloads(from: Data("not an image".utf8))) { error in
+            XCTAssertEqual(error as? QRCodeDecodingError, .unreadableImage)
+        }
+    }
+
+    func testReportsAllPayloadsInTheImage() throws {
+        let image = try QRCodeFixture.compositeCGImage(
+            codes: [
+                ("hello", CGRect(x: 40, y: 40, width: 140, height: 140)),
+                ("https://example.com/a.apk", CGRect(x: 500, y: 500, width: 140, height: 140)),
+            ],
+            canvas: CGSize(width: 800, height: 800)
+        )
+
+        let data = try QRCodeFixture.pngData(of: image)
+
+        XCTAssertEqual(Set(try QRCodeDecoder.payloads(from: data)), ["hello", "https://example.com/a.apk"])
+    }
 }
