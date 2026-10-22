@@ -7,14 +7,14 @@ final class ActionCapsuleStateTests: XCTestCase {
         deviceRunning: Bool,
         isRunning: Bool = false,
         isBusy: Bool = false,
-        status: String? = nil
+        busyText: String? = nil
     ) -> ActionCapsuleInput {
         ActionCapsuleInput(
             hasAPK: hasAPK,
             deviceRunning: deviceRunning,
             isRunning: isRunning,
             isBusy: isBusy,
-            statusText: status
+            busyText: busyText
         )
     }
 
@@ -58,7 +58,7 @@ final class ActionCapsuleStateTests: XCTestCase {
     func testBusyCarriesStatus() {
         XCTAssertEqual(
             ActionCapsuleResolver.resolve(
-                input(hasAPK: true, deviceRunning: true, isBusy: true, status: "正在安装…")
+                input(hasAPK: true, deviceRunning: true, isBusy: true, busyText: "正在安装…")
             ),
             .busy("正在安装…")
         )
@@ -70,6 +70,48 @@ final class ActionCapsuleStateTests: XCTestCase {
                 input(hasAPK: true, deviceRunning: true, isBusy: true)
             ),
             .busy("正在处理…")
+        )
+    }
+
+    func testBusyWinsOverWaitingForDevice() {
+        XCTAssertEqual(
+            ActionCapsuleResolver.resolve(
+                input(hasAPK: true, deviceRunning: false, isBusy: true, busyText: "正在安装…")
+            ),
+            .busy("正在安装…")
+        )
+    }
+
+    func testBusyWinsOverHidden() {
+        XCTAssertEqual(
+            ActionCapsuleResolver.resolve(
+                input(hasAPK: false, deviceRunning: false, isBusy: true)
+            ),
+            .busy("正在处理…")
+        )
+    }
+
+    func testBusyWinsOverRunning() {
+        XCTAssertEqual(
+            ActionCapsuleResolver.resolve(
+                input(
+                    hasAPK: true,
+                    deviceRunning: true,
+                    isRunning: true,
+                    isBusy: true,
+                    busyText: "正在重开…"
+                )
+            ),
+            .busy("正在重开…")
+        )
+    }
+
+    func testBusyTextAloneDoesNotForceBusy() {
+        XCTAssertEqual(
+            ActionCapsuleResolver.resolve(
+                input(hasAPK: true, deviceRunning: true, busyText: "上次运行失败")
+            ),
+            .readyToRun
         )
     }
 }
