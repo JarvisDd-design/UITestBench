@@ -113,4 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         return .terminateLater
     }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
 }

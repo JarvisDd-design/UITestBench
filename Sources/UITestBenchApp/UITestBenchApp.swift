@@ -10,7 +10,12 @@ struct UITestBenchApp: App {
     var body: some Scene {
         WindowGroup("UI验收台") {
             ContentView()
-                .frame(minWidth: 960, minHeight: 640)
+                .frame(minWidth: 1000, minHeight: 700)
+                .background(Color.clear)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .commands {
+            CommandGroup(replacing: .newItem) {}
         }
     }
 }
