@@ -146,6 +146,10 @@ struct DockRailItem: View {
     }
 
     private var backgroundFill: Color {
+        // 钉住比 hover 预告更「实」，用户一眼能看出这个抽屉不会自己收起。
+        if isPinned {
+            return palette.lime.opacity(0.24)
+        }
         if isPresented {
             return palette.lime.opacity(0.16)
         }
