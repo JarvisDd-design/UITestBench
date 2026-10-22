@@ -1,7 +1,7 @@
 import SwiftUI
 import UITestBenchCore
 
-extension Color {
+fileprivate extension Color {
     init(hex: UInt32, opacity: Double = 1) {
         self.init(
             .sRGB,
@@ -17,12 +17,19 @@ extension Color {
 struct BenchPalette {
     let isDark: Bool
     let canvas: Color
+    /// 半透明表面，叠在材质上使用。
     let surface: Color
+    /// 不透明表面：抽屉、卡片需要遮挡底下的内容时用。
     let surfaceOpaque: Color
     let textPrimary: Color
     let textSecondary: Color
+    /// 弱化文字；只用于 11pt 以上的说明性文字，对比度已按 4.5:1 校准。
     let textTertiary: Color
     let separator: Color
+    /// 自绘交通灯；两种主题下保持一致。
+    let trafficClose: Color
+    let trafficMinimize: Color
+    let trafficZoom: Color
     let lime: Color
     let onLime: Color
     /// 浅色下黄绿不能直接做文字，改用深橄榄；深色下可以直接用黄绿。
@@ -31,7 +38,9 @@ struct BenchPalette {
     let warning: Color
     let phoneBezel: Color
     let phoneRim: Color
+    /// 近层阴影，和 shadowFar 叠加成柔和投影。
     let shadowNear: Color
+    /// 远层阴影，负责扩散范围。
     let shadowFar: Color
 
     static let light = BenchPalette(
@@ -40,9 +49,12 @@ struct BenchPalette {
         surface: Color.white.opacity(0.55),
         surfaceOpaque: Color(hex: 0xFFFFFF),
         textPrimary: Color(hex: 0x1C1C1E),
-        textSecondary: Color(hex: 0x6C6C70),
-        textTertiary: Color(hex: 0x8E8E93),
+        textSecondary: Color(hex: 0x5F5F64),
+        textTertiary: Color(hex: 0x6E6E73),
         separator: Color(hex: 0xD1D1D6),
+        trafficClose: Color(hex: 0xFF5F57),
+        trafficMinimize: Color(hex: 0xFEBC2E),
+        trafficZoom: Color(hex: 0x28C840),
         lime: Color(hex: 0xC6F24E),
         onLime: Color(hex: 0x14210A),
         limeInk: Color(hex: 0x3F6212),
@@ -61,8 +73,11 @@ struct BenchPalette {
         surfaceOpaque: Color(hex: 0x1C1C1E),
         textPrimary: Color(hex: 0xF2F2F7),
         textSecondary: Color(hex: 0xA1A1A6),
-        textTertiary: Color(hex: 0x6C6C70),
+        textTertiary: Color(hex: 0x8E8E93),
         separator: Color(hex: 0x38383A),
+        trafficClose: Color(hex: 0xFF5F57),
+        trafficMinimize: Color(hex: 0xFEBC2E),
+        trafficZoom: Color(hex: 0x28C840),
         lime: Color(hex: 0xC6F24E),
         onLime: Color(hex: 0x14210A),
         limeInk: Color(hex: 0xC6F24E),
@@ -90,10 +105,11 @@ private struct BenchThemeModifier: ViewModifier {
     let mode: ThemeMode
 
     func body(content: Content) -> some View {
-        content
-            .environment(\.benchPalette, mode == .dark ? .dark : .light)
-            .preferredColorScheme(mode == .dark ? .dark : .light)
-            .tint(mode == .dark ? Color(hex: 0xC6F24E) : Color(hex: 0x3F6212))
+        let palette: BenchPalette = mode == .dark ? .dark : .light
+        return content
+            .environment(\.benchPalette, palette)
+            .preferredColorScheme(palette.isDark ? .dark : .light)
+            .tint(palette.limeInk)
     }
 }
 
