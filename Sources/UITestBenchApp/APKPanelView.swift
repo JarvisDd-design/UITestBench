@@ -291,12 +291,10 @@ struct APKPanelView: View {
     @ObservedObject var model: APKPanelModel
     @ObservedObject var scanner: ScreenScannerModel
     @State private var isDropTargeted = false
+    @Environment(\.benchPalette) private var palette
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("APK")
-                .font(.headline)
-
             // 扫码是主入口：对准飞书/浏览器里的码就行，不用先截图。
             Button {
                 scanner.start(from: NSApp.keyWindow)
@@ -304,8 +302,7 @@ struct APKPanelView: View {
                 Label("扫描屏幕二维码", systemImage: "qrcode.viewfinder")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(BenchPrimaryButtonStyle(height: 38))
             .disabled(scanner.isScanning)
             .help("打开可拖动的取景卡片，出现 2 秒后开始扫描")
 
@@ -365,7 +362,7 @@ struct APKPanelView: View {
                     .truncationMode(.middle)
                 HStack(spacing: 8) {
                     Button("下载") { model.downloadScannedLink() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(BenchPrimaryButtonStyle(height: 28))
                     Button("取消") { model.dismissScanNotice() }
                 }
                 .controlSize(.small)
@@ -373,8 +370,8 @@ struct APKPanelView: View {
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.1))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(palette.lime.opacity(0.14))
             )
         }
     }
@@ -449,13 +446,13 @@ struct APKPanelView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
-        .foregroundStyle(isDropTargeted ? Color.accentColor : Color.secondary)
+        .foregroundStyle(isDropTargeted ? palette.limeInk : palette.textSecondary)
         .frame(maxWidth: .infinity)
         .frame(height: 92)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(
-                    isDropTargeted ? Color.accentColor : Color.secondary.opacity(0.45),
+                    isDropTargeted ? palette.limeInk : palette.separator,
                     style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
                 )
         )
@@ -527,7 +524,7 @@ struct APKPanelView: View {
                     .foregroundStyle(.green)
             } else {
                 Label("这个包装不上", systemImage: "xmark.octagon.fill")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(palette.error)
                 ForEach(Array(report.issues.enumerated()), id: \.offset) { _, issue in
                     Text(issue.explanation)
                         .foregroundStyle(.secondary)
