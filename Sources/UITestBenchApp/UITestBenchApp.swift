@@ -18,7 +18,7 @@ struct UITestBenchApp: App {
             // 空组会把「关闭」一起删掉，⌘W 就没了；这里显式补回关闭。
             CommandGroup(replacing: .newItem) {
                 Button("关闭窗口") {
-                    NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil)
+                    NSApp.keyWindow?.performClose(nil)
                 }
                 .keyboardShortcut("w", modifiers: .command)
             }

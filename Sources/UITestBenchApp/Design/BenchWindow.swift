@@ -27,14 +27,17 @@ final class BenchWindowController: ObservableObject {
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
 
-        // 有存过的窗口位置就用存的；没有才给默认尺寸。用公开 API 恢复，
-        // 不去读 "NSWindow Frame …" 这个实现细节。
-        let autosaveName = "UITestBench.MainWindow"
-        if !window.setFrameUsingName(autosaveName) {
-            window.setContentSize(NSSize(width: 1120, height: 780))
-            window.center()
+        // 尺寸要等 SwiftUI 配置完自己的窗口之后再做，否则会被它覆盖成最小尺寸。
+        DispatchQueue.main.async {
+            // 有存过的窗口位置就用存的；没有才给默认尺寸。用公开 API 恢复，
+            // 不去读 "NSWindow Frame …" 这个实现细节。
+            let autosaveName = "UITestBench.MainWindow"
+            if !window.setFrameUsingName(autosaveName) {
+                window.setContentSize(NSSize(width: 1120, height: 780))
+                window.center()
+            }
+            window.setFrameAutosaveName(autosaveName)
         }
-        window.setFrameAutosaveName(autosaveName)
     }
 
     func close() {
@@ -67,7 +70,7 @@ struct WindowConfigurator: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
-/// 真正挂进窗口时才报告，不用等下一个 runloop；只会触发一次。
+/// 真正挂进窗口时才报告，不用等下一个 runloop；同一窗口重复通知无副作用。
 private final class WindowProbe: NSView {
     private let onAttach: (NSWindow) -> Void
 
