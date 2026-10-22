@@ -161,6 +161,9 @@ final class MirrorDisplayView: NSView {
 
     override var acceptsFirstResponder: Bool { true }
 
+    /// 画面是触摸面：拖拽要交给设备做滑动，不能变成拖窗口。
+    override var mouseDownCanMoveWindow: Bool { false }
+
     /// 窗口没激活时的第一次点击也要算数，否则要「点两下才有反应」。
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 

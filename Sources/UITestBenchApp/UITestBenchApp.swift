@@ -15,7 +15,13 @@ struct UITestBenchApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(replacing: .newItem) {}
+            // 空组会把「关闭」一起删掉，⌘W 就没了；这里显式补回关闭。
+            CommandGroup(replacing: .newItem) {
+                Button("关闭窗口") {
+                    NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("w", modifiers: .command)
+            }
         }
     }
 }
@@ -23,6 +29,7 @@ struct UITestBenchApp: App {
 struct ContentView: View {
     private let paths = AppPaths.standard
     @StateObject private var setup: SetupModel
+    @StateObject private var window = BenchWindowController()
 
     init() {
         _setup = StateObject(wrappedValue: SetupModel(paths: .standard))
@@ -36,6 +43,13 @@ struct ContentView: View {
                 SetupView(model: setup)
             }
         }
+        .background(
+            WindowConfigurator { window.attach($0) }
+                .frame(width: 0, height: 0)
+        )
+        // 临时：旧布局没有自己的底色，透明窗口下文字会直接压到桌面上。
+        // Task 24 重写界面时连同旧布局一起删掉这一行。
+        .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             setup.markReadyIfInstalled()
         }

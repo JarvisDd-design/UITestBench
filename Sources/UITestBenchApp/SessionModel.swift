@@ -117,4 +117,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
+
+    // 单窗口：不保存也不恢复窗口状态。否则从 1.2.0 升级的用户可能恢复出
+    // 多个旧窗口，各自拉起一套 EmulatorController 抢同一台 AVD。
+    func applicationShouldSaveApplicationState(_ sender: NSApplication) -> Bool { false }
+    func applicationShouldRestoreApplicationState(_ sender: NSApplication) -> Bool { false }
 }
