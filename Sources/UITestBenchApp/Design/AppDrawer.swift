@@ -9,6 +9,7 @@ struct AppDrawer: View {
     let apk: AcquiredAPK?
 
     @Environment(\.benchPalette) private var palette
+    @State private var copiedField: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -17,15 +18,17 @@ struct AppDrawer: View {
 
             if let identity = run.identity {
                 Divider().overlay(palette.separator)
-                identitySection(identity)
+                identitySection(identity, packageName: apk?.info.packageName)
             } else if let apk {
                 Divider().overlay(palette.separator)
                 HStack(spacing: 6) {
                     Text("设备 ID").font(.caption).foregroundStyle(palette.textSecondary)
                     Text("应用还没读取").font(.caption).foregroundStyle(palette.textSecondary)
-                    Button("刷新") { run.refreshIdentity(packageName: apk.info.packageName) }
-                        .buttonStyle(.link)
-                        .font(.caption)
+                    if let packageName = apk.info.packageName {
+                        Button("刷新") { run.refreshIdentity(packageName: packageName) }
+                            .buttonStyle(.link)
+                            .font(.caption)
+                    }
                 }
             }
 
@@ -72,7 +75,7 @@ struct AppDrawer: View {
     }
 
     /// 开发加白名单要的是应用自己看到的 Android ID，不是设备种子。
-    private func identitySection(_ identity: DeviceIdentity) -> some View {
+    private func identitySection(_ identity: DeviceIdentity, packageName: String?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if let androidID = identity.androidID {
                 HStack(spacing: 6) {
@@ -82,9 +85,11 @@ struct AppDrawer: View {
                     Text(androidID)
                         .font(.system(.caption, design: .monospaced))
                         .textSelection(.enabled)
-                    Button("复制") { copyToPasteboard(androidID) }
-                        .buttonStyle(.link)
-                        .font(.caption)
+                    Button(copiedField == "androidID" ? "已复制" : "复制") {
+                        copy(androidID, field: "androidID")
+                    }
+                    .buttonStyle(.link)
+                    .font(.caption)
                 }
 
                 HStack(spacing: 6) {
@@ -96,17 +101,24 @@ struct AppDrawer: View {
                         .textSelection(.enabled)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    Button("复制 MD5") {
-                        copyToPasteboard(DeviceFingerprint.md5(of: androidID))
+                    Button(copiedField == "md5" ? "已复制" : "复制 MD5") {
+                        copy(DeviceFingerprint.md5(of: androidID), field: "md5")
                     }
                     .buttonStyle(.link)
                     .font(.caption2)
                     .help("反馈后台显示 32 位设备 ID 时，发这个")
                 }
             } else {
-                Text("设备 ID 还没读到")
-                    .font(.caption)
-                    .foregroundStyle(palette.textSecondary)
+                HStack(spacing: 6) {
+                    Text("设备 ID 还没读到")
+                        .font(.caption)
+                        .foregroundStyle(palette.textSecondary)
+                    if let packageName {
+                        Button("刷新") { run.refreshIdentity(packageName: packageName) }
+                            .buttonStyle(.link)
+                            .font(.caption)
+                    }
+                }
             }
 
             if device.teamKeyActive {
@@ -144,6 +156,15 @@ struct AppDrawer: View {
         Text(text)
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(palette.textSecondary)
+    }
+
+    private func copy(_ text: String, field: String) {
+        copyToPasteboard(text)
+        copiedField = field
+        Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if copiedField == field { copiedField = nil }
+        }
     }
 
     private func copyToPasteboard(_ text: String) {
