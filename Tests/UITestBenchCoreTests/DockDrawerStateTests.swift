@@ -15,6 +15,9 @@ final class DockDrawerStateTests: XCTestCase {
         state.pin(.device)
         state.hover(.material)
         XCTAssertEqual(state.presented, .device)
+        XCTAssertNil(state.hovered, "钉住时悬停不能被记住，否则取消钉住后会冒出抽屉")
+        state.pin(.device)
+        XCTAssertNil(state.presented)
     }
 
     func testPinningSameModuleTogglesOff() {
@@ -33,12 +36,20 @@ final class DockDrawerStateTests: XCTestCase {
         XCTAssertEqual(state.presented, .diagnostics)
     }
 
-    func testDismissClearsHoverAndPin() {
+    func testDismissClearsPin() {
         var state = DockDrawerState()
         state.pin(.app)
         state.dismiss()
-        XCTAssertNil(state.presented)
         XCTAssertNil(state.pinned)
+        XCTAssertNil(state.presented)
+    }
+
+    func testDismissClearsHover() {
+        var state = DockDrawerState()
+        state.hover(.material)
+        state.dismiss()
+        XCTAssertNil(state.hovered)
+        XCTAssertNil(state.presented)
     }
 
     func testClearingHoverKeepsPin() {
@@ -46,5 +57,37 @@ final class DockDrawerStateTests: XCTestCase {
         state.pin(.material)
         state.clearHover()
         XCTAssertEqual(state.presented, .material)
+    }
+
+    func testClearingHoverClosesHoveredDrawer() {
+        var state = DockDrawerState()
+        state.hover(.material)
+        state.clearHover()
+        XCTAssertNil(state.hovered)
+        XCTAssertNil(state.presented)
+    }
+
+    func testUnhoverOfAnotherModuleIsIgnored() {
+        var state = DockDrawerState()
+        state.hover(.material)
+        state.unhover(.device)
+        XCTAssertEqual(state.hovered, .material)
+        XCTAssertEqual(state.presented, .material)
+    }
+
+    func testHoveringAnotherModuleSwitchesDrawer() {
+        var state = DockDrawerState()
+        state.hover(.material)
+        state.hover(.device)
+        XCTAssertEqual(state.hovered, .device)
+        XCTAssertEqual(state.presented, .device)
+    }
+
+    func testPinningClearsHover() {
+        var state = DockDrawerState()
+        state.hover(.material)
+        state.pin(.device)
+        XCTAssertNil(state.hovered)
+        XCTAssertEqual(state.presented, .device)
     }
 }

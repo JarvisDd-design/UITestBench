@@ -13,10 +13,7 @@ public struct DockDrawerState: Equatable, Sendable {
     public private(set) var hovered: DockModule?
     public private(set) var pinned: DockModule?
 
-    public init(hovered: DockModule? = nil, pinned: DockModule? = nil) {
-        self.hovered = hovered
-        self.pinned = pinned
-    }
+    public init() {}
 
     public var presented: DockModule? { pinned ?? hovered }
 
@@ -30,12 +27,13 @@ public struct DockDrawerState: Equatable, Sendable {
         hovered = nil
     }
 
+    /// 同一模块再点一次取消钉住；点别的模块直接换抽屉。
     public mutating func pin(_ module: DockModule) {
         pinned = pinned == module ? nil : module
         hovered = nil
     }
 
-    /// 悬停计时到点时只清 hover，不能碰钉住状态。
+    /// 只在整体收起时用；按模块的收起计时请用 `unhover(_:)`，避免误关别的抽屉。
     public mutating func clearHover() {
         hovered = nil
     }
