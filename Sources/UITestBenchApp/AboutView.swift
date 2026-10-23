@@ -50,6 +50,7 @@ struct AboutView: View {
         }
         .padding(28)
         .frame(width: 440)
+        .background(palette.canvas)
         .sheet(isPresented: $showsLicense) {
             LicenseView()
         }
@@ -58,6 +59,7 @@ struct AboutView: View {
 
 private struct LicenseView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.benchPalette) private var palette
 
     var body: some View {
         VStack(spacing: 0) {
@@ -77,6 +79,7 @@ private struct LicenseView: View {
             .padding(12)
         }
         .frame(width: 620, height: 480)
+        .background(palette.canvas)
     }
 
     private var licenseText: String {
