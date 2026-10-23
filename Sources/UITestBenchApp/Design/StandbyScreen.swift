@@ -17,12 +17,14 @@ struct StandbyScreen: View {
     var body: some View {
         let state = StandbyScreenStateResolver.resolve(
             StandbyScreenInput(
-                isStarting: isStarting,
+                isStarting: isTransitioning,
                 failure: failureMessage,
                 hasAPK: apk.acquired?.compatibility.isCompatible == true,
                 deviceRunning: device.isRunning
             )
         )
+        // 拖入高亮和接收判定共用同一个条件：设备运行时手机屏是触摸面，不接收文件。
+        let acceptsDrop = DropTargetPolicy.acceptsDrop(deviceRunning: device.isRunning)
 
         ZStack {
             LinearGradient(
@@ -35,6 +37,7 @@ struct StandbyScreen: View {
                 Image(systemName: icon(for: state))
                     .font(.system(size: 36, weight: .light))
                     .foregroundStyle(palette.limeInk)
+                    .accessibilityHidden(true)
 
                 Text(title(for: state))
                     .font(.system(size: 16, weight: .semibold))
@@ -51,20 +54,18 @@ struct StandbyScreen: View {
 
                 if state == .needsAPK || state == .readyToStart {
                     Text("也可以把 APK 拖到这里")
-                        .font(.system(size: 10))
-                        .foregroundStyle(palette.textTertiary)
+                        .font(.system(size: 11))
+                        .foregroundStyle(palette.textSecondary)
                 }
             }
             .padding(24)
         }
         .overlay(
             Rectangle()
-                .strokeBorder(palette.lime, lineWidth: isDropTargeted ? 3 : 0)
+                .strokeBorder(palette.lime, lineWidth: isDropTargeted && acceptsDrop ? 3 : 0)
         )
         .onDrop(of: [.fileURL, .image, .url, .plainText], isTargeted: $isDropTargeted) { providers in
-            guard DropTargetPolicy.acceptsDrop(deviceRunning: device.isRunning) else {
-                return false
-            }
+            guard acceptsDrop else { return false }
             return apk.accept(droppedProviders: providers)
         }
     }
@@ -93,10 +94,12 @@ struct StandbyScreen: View {
         case .starting, .connecting:
             ProgressView()
                 .controlSize(.small)
+                .accessibilityLabel(title(for: state))
         }
     }
 
-    private var isStarting: Bool {
+    /// 启动和停止都是过渡态：两种都先显示进度，标题再靠 `isStopping` 区分。
+    private var isTransitioning: Bool {
         if case .starting = device.state { return true }
         if case .stopping = device.state { return true }
         return false
