@@ -96,11 +96,6 @@ final class MirrorModel: ObservableObject {
         }
     }
 
-    /// 设备按键：画面下方的返回/主页/多任务按钮。
-    func pressKey(_ key: AndroidKey) {
-        inputController?.pressKey(key)
-    }
-
     func stop() {
         inputController = nil
         display.inputController = nil

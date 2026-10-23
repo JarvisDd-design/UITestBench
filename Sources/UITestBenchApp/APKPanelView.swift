@@ -336,14 +336,6 @@ struct APKPanelView: View {
 
             stateView
         }
-        .onAppear {
-            scanner.onHit = { link in
-                model.presentScannedLink(link)
-            }
-            scanner.onFallback = {
-                model.chooseFile()
-            }
-        }
     }
 
     @ViewBuilder

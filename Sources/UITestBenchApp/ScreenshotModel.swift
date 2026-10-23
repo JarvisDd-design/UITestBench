@@ -49,4 +49,8 @@ final class ScreenshotModel: ObservableObject {
     func closeEditor() {
         editor = nil
     }
+
+    func clearError() {
+        errorMessage = nil
+    }
 }
