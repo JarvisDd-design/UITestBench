@@ -2,7 +2,7 @@ import SwiftUI
 import UITestBenchCore
 
 /// 手机舞台：外壳里放画面或待机屏，下方挂操作胶囊。
-/// 不持有任何模型，状态与动作都由调用方给。
+/// 不创建模型；模型与动作都由调用方注入。
 struct PhoneStage: View {
     @ObservedObject var device: EmulatorController
     @ObservedObject var mirror: MirrorModel
@@ -48,7 +48,9 @@ struct PhoneStage: View {
     private var screen: some View {
         if case .streaming = mirror.state {
             VideoSurface(display: mirror.display)
+                .accessibilityElement(children: .ignore)
                 .accessibilityLabel("手机屏幕画面")
+                .accessibilityAddTraits(.isImage)
         } else {
             StandbyScreen(
                 device: device,
