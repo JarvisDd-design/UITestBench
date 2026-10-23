@@ -247,6 +247,16 @@ private final class ScannerFrameView: NSView {
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
+    /// 面板外观由工具的二态主题显式设定，墨色跟着它走。
+    private var isDark: Bool {
+        effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
@@ -281,6 +291,19 @@ private final class ScannerFrameView: NSView {
 
         let outer = NSBezierPath(roundedRect: card, xRadius: radius, yRadius: radius)
 
+        // 浅色主题的 hudWindow 玻璃会随背后内容在浅灰之间浮动，直接写黑字
+        // 对比度不够。先只给四条边框带铺一层主题 scrim；取景区用矩形挖掉，
+        // 保证镂空区域一像素都不盖。
+        let scrimPath = CGMutablePath()
+        scrimPath.addRoundedRect(in: card, cornerWidth: radius, cornerHeight: radius)
+        scrimPath.addRect(viewfinder)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current?.cgContext.addPath(scrimPath)
+        NSGraphicsContext.current?.cgContext.clip(using: .evenOdd)
+        scrimColor.setFill()
+        NSBezierPath(rect: card).fill()
+        NSGraphicsContext.restoreGraphicsState()
+
         // 玻璃高光只画在卡片边框上。取景区必须保持完全透明，
         // 所以用 even-odd 路径把中间挖掉再裁剪。
         if let highlight = NSGradient(colors: [
@@ -303,13 +326,13 @@ private final class ScannerFrameView: NSView {
         }
 
         outer.lineWidth = 1
-        NSColor.white.withAlphaComponent(0.38).setStroke()
+        outerStrokeColor.setStroke()
         outer.stroke()
 
         // 取景区的玻璃切口：一圈亮边，让「框」有实体感。
         let inner = NSBezierPath(roundedRect: viewfinder, xRadius: 18, yRadius: 18)
         inner.lineWidth = 1
-        NSColor.white.withAlphaComponent(0.55).setStroke()
+        innerStrokeColor.setStroke()
         inner.stroke()
 
         drawCorners(in: viewfinder)
@@ -342,7 +365,15 @@ private final class ScannerFrameView: NSView {
         path.line(to: NSPoint(x: frame.maxX, y: frame.maxY))
         path.line(to: NSPoint(x: frame.maxX, y: frame.maxY - length))
 
-        Self.scanBlue.setStroke()
+        // 角标画在完全透明的取景区上，背后是白页还是深色页面不可控。
+        // 单一颜色不可能同时压住纯白和纯黑，所以先描一圈与墨色相反的
+        // keyline：任何底色上至少有一条边能读出来。几何不变。
+        path.lineWidth = 5.5
+        cornerKeylineColor.setStroke()
+        path.stroke()
+
+        path.lineWidth = 3.5
+        cornerColor.setStroke()
         path.stroke()
     }
 
@@ -353,7 +384,7 @@ private final class ScannerFrameView: NSView {
             at: NSPoint(x: card.minX + 24, y: card.minY + 20),
             withAttributes: [
                 .font: NSFont.systemFont(ofSize: 17, weight: .semibold),
-                .foregroundColor: NSColor.white.withAlphaComponent(0.96),
+                .foregroundColor: titleColor,
             ]
         )
     }
@@ -398,7 +429,7 @@ private final class ScannerFrameView: NSView {
 
     private func drawCloseButton() {
         let rect = closeRect
-        NSColor.black.withAlphaComponent(0.28).setFill()
+        closeFillColor.setFill()
         NSBezierPath(ovalIn: rect).fill()
 
         let cross = rect.insetBy(dx: 9, dy: 9)
@@ -409,8 +440,59 @@ private final class ScannerFrameView: NSView {
         path.line(to: NSPoint(x: cross.maxX, y: cross.maxY))
         path.move(to: NSPoint(x: cross.maxX, y: cross.minY))
         path.line(to: NSPoint(x: cross.minX, y: cross.maxY))
-        NSColor.white.withAlphaComponent(0.9).setStroke()
+        closeCrossColor.setStroke()
         path.stroke()
+    }
+
+    // MARK: - 主题墨色
+
+    private var titleColor: NSColor {
+        isDark
+            ? NSColor.white.withAlphaComponent(0.96)
+            : NSColor.black.withAlphaComponent(0.90)
+    }
+
+    private var outerStrokeColor: NSColor {
+        isDark
+            ? NSColor.white.withAlphaComponent(0.38)
+            : NSColor.black.withAlphaComponent(0.20)
+    }
+
+    private var innerStrokeColor: NSColor {
+        isDark
+            ? NSColor.white.withAlphaComponent(0.55)
+            : NSColor.black.withAlphaComponent(0.24)
+    }
+
+    private var cornerColor: NSColor {
+        isDark ? Self.scanBlue : Self.lightThemeScanBlue
+    }
+
+    private var cornerKeylineColor: NSColor {
+        isDark
+            ? NSColor.black.withAlphaComponent(0.80)
+            : NSColor.white.withAlphaComponent(0.85)
+    }
+
+    private var closeFillColor: NSColor {
+        isDark
+            ? NSColor.black.withAlphaComponent(0.28)
+            : NSColor.black.withAlphaComponent(0.55)
+    }
+
+    private var closeCrossColor: NSColor {
+        isDark
+            ? NSColor.white.withAlphaComponent(0.9)
+            : NSColor.white
+    }
+
+    /// 边框带上的一层主题底：把随背后内容浮动的玻璃压进墨色的可读区间。
+    /// 深色主题下 hudWindow 玻璃叠在白页面上会升到中灰，只压 0.20 时
+    /// 白标题只有约 3.5:1，所以深色一侧要更重。
+    private var scrimColor: NSColor {
+        isDark
+            ? NSColor.black.withAlphaComponent(0.40)
+            : NSColor.white.withAlphaComponent(0.35)
     }
 
     // MARK: - 光带与成功图标
@@ -522,6 +604,14 @@ private final class ScannerFrameView: NSView {
         calibratedRed: 0.43,
         green: 0.78,
         blue: 1,
+        alpha: 1
+    )
+
+    /// 浅色玻璃上用的深蓝角标；#7DD1FF 在浅底上读不出来。
+    private static let lightThemeScanBlue = NSColor(
+        srgbRed: 10.0 / 255.0,
+        green: 110.0 / 255.0,
+        blue: 158.0 / 255.0,
         alpha: 1
     )
 
