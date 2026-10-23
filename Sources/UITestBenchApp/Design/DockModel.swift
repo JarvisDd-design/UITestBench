@@ -101,10 +101,14 @@ final class DockModel: ObservableObject {
         outsideMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             guard let self else { return event }
             let isSheet = event.window?.sheetParent != nil
+            // NSOpenPanel 之类的应用级模态也是独立窗口，坐标同样不能拿来和坞宽比较；
+            // 否则在「选择本地文件…」里点右半边会把抽屉一起收掉。
+            let isModal = NSApp.modalWindow != nil
             if self.state.shouldDismissOnClick(
                 atX: event.locationInWindow.x,
                 dockWidth: dockWidth,
-                isSheet: isSheet
+                isSheet: isSheet,
+                isModal: isModal
             ) {
                 self.dismiss()
             }

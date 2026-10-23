@@ -121,4 +121,17 @@ final class DockDrawerStateTests: XCTestCase {
         XCTAssertFalse(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: true))
         XCTAssertFalse(state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: true))
     }
+
+    func testClicksWhileAppIsModalNeverDismissPinnedDrawer() {
+        var state = DockDrawerState()
+        state.pin(.settings)
+        // 「选择本地文件…」的 NSOpenPanel 是应用级模态，点击坐标属于面板自己的窗口；
+        // 不能拿它和坞宽比较，否则点面板右半边会连抽屉一起收掉。
+        XCTAssertFalse(
+            state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: false, isModal: true)
+        )
+        XCTAssertFalse(
+            state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: false, isModal: true)
+        )
+    }
 }

@@ -157,6 +157,9 @@ struct ContentView: View {
         }
         .onDisappear {
             dock.stopOutsideClickMonitor()
+            // 主窗口没了，扫描结果不该再回写到可能已销毁的模型上。
+            scanner.onHit = nil
+            scanner.onFallback = nil
             scanner.shutdown()
         }
         .alert(
