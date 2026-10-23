@@ -33,6 +33,7 @@ struct AnnotationEditorView: View {
             }
         }
         .frame(minWidth: 760, minHeight: 580)
+        .background(palette.canvas)
     }
 
     // MARK: - 工具条
