@@ -23,7 +23,8 @@ struct PhoneFrame<Content: View>: View {
                 RoundedRectangle(cornerRadius: outerRadius, style: .continuous)
                     .strokeBorder(palette.phoneRim, lineWidth: 1)
             )
-            // 外层大阴影由窗口自身的 hasShadow 负责，这里只留贴边的近影。
+            // 15.x 上外层大阴影由窗口自身的 hasShadow 负责，这里只留贴边的近影；
+            // 12.3 上窗口阴影若变矩形，按风险表在这里补 shadowFar。
             .shadow(color: palette.shadowNear, radius: 6, x: 0, y: 2)
     }
 }
