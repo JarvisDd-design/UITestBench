@@ -46,7 +46,7 @@ struct SettingsDrawer: View {
                 .buttonStyle(BenchSecondaryButtonStyle(height: 30))
 
             Text("版本 \(AboutView.appVersion)")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(palette.textTertiary)
         }
         .sheet(isPresented: $showsAbout) {

@@ -23,6 +23,8 @@ final class DockModel: ObservableObject {
     var pinned: DockModule? { state.pinned }
 
     func hover(_ module: DockModule, inside: Bool) {
+        // sheet 是抽屉的子窗口，此时换模块会把 sheet 的宿主一起拆掉。
+        guard !hasSheetAttached else { return }
         if inside {
             guard state.pinned == nil else { return }
             // 回到已经展开的那一项时取消收起，避免闪一下。
@@ -30,7 +32,8 @@ final class DockModel: ObservableObject {
             hoverWork?.cancel()
             pendingHover = module
             let work = DispatchWorkItem { [weak self] in
-                guard let self, self.pendingHover == module, self.state.pinned == nil else {
+                guard let self, !self.hasSheetAttached,
+                      self.pendingHover == module, self.state.pinned == nil else {
                     return
                 }
                 self.pendingHover = nil
@@ -116,19 +119,23 @@ final class DockModel: ObservableObject {
         outsideMonitor = nil
     }
 
-    /// 收起必须记住是给哪个模块排的：期间可能已经换到另一个抽屉，
-    /// 到点再无条件 clearHover 会把新展开的抽屉关掉。
-    /// 「关于」等 sheet 挂在抽屉上；指针移到 sheet 上不算离开抽屉。
+    /// 「关于」等 sheet 挂在抽屉上；只要还有可见 sheet，就不许抽屉换模块或自动收起。
     private var hasSheetAttached: Bool {
-        NSApp.keyWindow?.sheetParent != nil
+        NSApp.windows.contains { $0.isVisible && $0.sheetParent != nil }
     }
 
+    /// 收起必须记住是给哪个模块排的：期间可能已经换到另一个抽屉，
+    /// 到点再无条件 clearHover 会把新展开的抽屉关掉。
     private func scheduleClose(_ module: DockModule) {
         guard !hasSheetAttached else { return }
         cancelClose()
         let work = DispatchWorkItem { [weak self] in
-            guard let self, !self.hasSheetAttached,
-                  self.state.pinned == nil, self.state.hovered == module else {
+            guard let self else { return }
+            if self.hasSheetAttached {
+                self.closeWork = nil
+                return
+            }
+            guard self.state.pinned == nil, self.state.hovered == module else {
                 return
             }
             self.state.clearHover()
