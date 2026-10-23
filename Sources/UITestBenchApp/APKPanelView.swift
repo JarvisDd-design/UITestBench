@@ -286,7 +286,7 @@ final class APKPanelModel: ObservableObject {
     }
 }
 
-/// 左栏的 APK 区：拖放框 + 链接输入 + 本地文件，下面是包信息和兼容性结论。
+/// 素材抽屉里的 APK 区：拖放框 + 链接输入 + 本地文件，下面是包信息和兼容性结论。
 struct APKPanelView: View {
     @ObservedObject var model: APKPanelModel
     @ObservedObject var scanner: ScreenScannerModel

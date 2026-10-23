@@ -34,6 +34,12 @@ if [ ! -d "$BUILT_APP" ]; then
   exit 1
 fi
 
+BUILT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$BUILT_APP/Contents/Info.plist")
+if [ "$BUILT_VERSION" != "$VERSION" ]; then
+  echo "版本不一致：app=$BUILT_VERSION，参数=$VERSION" >&2
+  exit 1
+fi
+
 echo "==> 组装磁盘映像内容"
 cp -R "$BUILT_APP" "$STAGE/${APP_NAME}.app"
 
@@ -41,23 +47,25 @@ cat > "$STAGE/首次打开.command" <<'SCRIPT'
 #!/bin/bash
 # 这个包没有做 Apple 公证，直接双击会被 Gatekeeper 拦下。
 # 脚本先把「从网络下载」的隔离标记去掉，再打开应用。
-cd "$(dirname "$0")"
-APP="UI验收台.app"
+# 用户按说明已经把应用拖进「应用程序」，所以要清的是那一份；
+# 只有找不到时才退回 DMG 卷内的原件。
+APP="/Applications/UI验收台.app"
 if [ ! -d "$APP" ]; then
-  APP="$(ls -d *.app 2>/dev/null | head -1)"
+  APP="$(cd "$(dirname "$0")" && pwd)/UI验收台.app"
 fi
-if [ -z "$APP" ]; then
-  echo "没有找到应用，请把 .dmg 里的「UI验收台.app」拖到「应用程序」后再试。"
+if [ ! -d "$APP" ]; then
+  echo "没在「应用程序」里找到「UI验收台.app」。请先把 .dmg 里的应用拖进「应用程序」，再双击本脚本。"
   read -r -p "按回车关闭…" _
   exit 1
 fi
+# 清理隔离标记失败不阻断：至少把应用打开，让用户看到具体提示。
 xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
 open "$APP"
 SCRIPT
 chmod +x "$STAGE/首次打开.command"
 
-cat > "$STAGE/使用说明.txt" <<'TEXT'
-UI验收台 1.3.0
+cat > "$STAGE/使用说明.txt" <<TEXT
+UI验收台 ${VERSION}
 
 第一次打开
   1. 把「UI验收台.app」拖进「应用程序」。
@@ -76,13 +84,16 @@ UI验收台 1.3.0
       2. 把 APK 文件拖进方框。
       3. 把二维码截图拖进方框，或点「从剪贴板粘贴」（⌘⇧V）。
       4. 粘贴下载链接，或选择本地文件。
+  · 窗口左侧是图标轨道，鼠标悬停或点击展开抽屉——素材（APK）、
+    设备（机型、启动/停止）、应用（运行状态、设备 ID）、诊断、设置；
+    手机画面下方的胶囊负责运行、截图、重开。
   · 屏幕扫码第一次使用会请求「屏幕录制」权限。画面只读取取景框里的
     区域，仅在本机内存中识别，不保存、不上传。
   · 如果授权后仍然没有画面，请退出并重新打开应用；升级安装包后如果
     扫码异常，到「系统设置 → 隐私与安全性 → 屏幕录制」里取消勾选再
     重新勾选「UI验收台」。系统设置里显示已开启、应用却仍提示未授权时，
     点权限卡片里的「重置授权」，再退出重开应用重新授权。
-  · 选机型 → 启动设备 → 运行应用。
+  · 在左侧坞「设备」里选机型 → 启动设备，再到「素材」取 APK、点手机下方「运行应用」。
   · 「运行应用」每次都会清空应用数据，等同于第一次打开——引导页、隐私协议
     这类只在首次出现的流程都能看到。
   · 想核对「第二次打开」的界面（例如已登录状态），用「保留数据重开」。
@@ -93,7 +104,7 @@ UI验收台 1.3.0
 
 设备 ID 与测试配置
   · 有些应用要开发在后台按「设备 ID」加白名单，才会出现测试场景。
-    运行应用之后，「运行」区会显示「设备 ID」——这是应用自己看到的
+    运行应用之后，左侧坞「应用」抽屉的「运行状态」里会显示「设备 ID」——这是应用自己看到的
     Android ID，点「复制」发给开发即可。
   · 如果开发后台显示的是 32 位设备 ID，点下面的「复制 MD5」：那是同一个
     Android ID 的 MD5，不是另一台设备。两列按后台实际显示的选择。

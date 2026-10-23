@@ -40,7 +40,7 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 
 | 领域 | 文件 |
 |---|---|
-| 主窗口外壳与坞 | `BenchPalette`、`ThemeStore`、`BenchWindow`、`DockModel`、`DockRail`、`DockDrawer`、`PhoneFrame`、`PhoneStage`、`ActionCapsule` |
+| 主窗口外壳与坞 | `BenchPalette`、`ThemeStore`、`BenchWindowController`、`DockModel`、`DockRail`、`DockDrawer`、`PhoneFrame`、`PhoneStage`、`ActionCapsule` |
 | SDK 自举 | `SdkBootstrap`、`SdkRepository`、`SdkInstallPlan`、`SdkInstaller`、`FileDownloader`、`Checksum`、`ZipArchive` |
 | 路径与清理 | `AppPaths`、`SessionCleaner`、`SessionShutdown`、`Diagnostics` |
 | APK | `APKSource`、`APKAcquirer`、`ZipReader`、`AXmlParser`、`AndroidManifest`、`ApkInspector`、`CompatibilityChecker` |
