@@ -77,6 +77,7 @@ final class ScreenScannerModel: ObservableObject {
 
     private var capture: (any ScreenCapturing)?
     private var panel: ScannerPanel?
+    private var isDarkAppearance = false
     private var analyzer: FrameAnalyzer?
     private weak var mainWindow: NSWindow?
     private var timeoutTask: Task<Void, Never>?
@@ -92,6 +93,11 @@ final class ScreenScannerModel: ObservableObject {
 
     var isScanning: Bool {
         state == .scanning
+    }
+
+    func setDarkAppearance(_ dark: Bool) {
+        isDarkAppearance = dark
+        panel?.applyTheme(dark: dark)
     }
 
     // MARK: - 生命周期
@@ -214,6 +220,7 @@ final class ScreenScannerModel: ObservableObject {
 
         let panel = self.panel ?? ScannerPanel()
         self.panel = panel
+        panel.applyTheme(dark: isDarkAppearance)
         panel.onCancel = { [weak self] in self?.cancel() }
         panel.onDragStart = { [weak self] in self?.dragDidStart() }
         panel.onDragEnd = { [weak self] in self?.dragDidEnd() }

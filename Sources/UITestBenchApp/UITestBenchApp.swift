@@ -134,6 +134,9 @@ struct ContentView: View {
             guard running, let name = apk.acquired?.info.packageName else { return }
             session.recordLaunch(packageName: name)
         }
+        .onChange(of: theme.mode) { mode in
+            scanner.setDarkAppearance(mode == .dark)
+        }
         .onAppear {
             session.startIfNeeded()
             _ = setup.markReadyIfInstalled()
@@ -143,6 +146,7 @@ struct ContentView: View {
             scanner.onFallback = {
                 apk.chooseFile()
             }
+            scanner.setDarkAppearance(theme.mode == .dark)
             dock.startOutsideClickMonitor(dockWidth: DockMetrics.columnWidth)
 
             // 退出时先卸包、再关设备：设备关了 adb 就卸不掉了。

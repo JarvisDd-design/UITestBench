@@ -111,6 +111,11 @@ final class ScannerPanel: NSPanel {
         container.addSubview(frameView)
     }
 
+    /// 工具是二态主题，系统外观不一定跟得上，这里显式设一次。
+    func applyTheme(dark: Bool) {
+        appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
