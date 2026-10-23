@@ -77,17 +77,22 @@ struct SetupScreen: View {
                         .disabled(model.isRunning)
                 }
 
+                // 生效值放在组外，收起时也能确认「应用」的结果。
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("当前组件清单：\(displayEndpoint(shownConfiguration.repositoryURL))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
+                        .help(shownConfiguration.repositoryURL.absoluteString)
+                    Text("当前系统镜像清单：\(displayEndpoint(shownConfiguration.systemImageRepositoryURL))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
+                        .help(shownConfiguration.systemImageRepositoryURL.absoluteString)
+                }
+
                 DisclosureGroup(isExpanded: $showsMirrorSettings) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("当前组件清单：\(displayHost(shownConfiguration.repositoryURL))")
-                            .font(.system(size: 11))
-                            .foregroundStyle(palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("当前系统镜像清单：\(displayHost(shownConfiguration.systemImageRepositoryURL))")
-                            .font(.system(size: 11))
-                            .foregroundStyle(palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
                         Text("组件清单地址")
                             .font(.caption2)
                             .foregroundStyle(palette.textSecondary)
@@ -109,7 +114,7 @@ struct SetupScreen: View {
                             .disabled(!hasValidMirrorURLs || model.isRunning)
 
                         if model.isRunning {
-                            Text("运行中修改会在下次开始准备时生效")
+                            Text("运行中不能修改镜像设置，完成后再改")
                                 .font(.system(size: 11))
                                 .foregroundStyle(palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -192,8 +197,10 @@ struct SetupScreen: View {
         ) != nil
     }
 
-    private func displayHost(_ url: URL) -> String {
-        url.host ?? url.absoluteString
+    private func displayEndpoint(_ url: URL) -> String {
+        let host = url.host ?? url.absoluteString
+        let file = url.lastPathComponent
+        return file.isEmpty ? host : "\(host) · \(file)"
     }
 
     private func loadConfiguration() {
