@@ -5,6 +5,7 @@ import UITestBenchCore
 
 /// 冻结的画面 + 顶部工具条。标注画在 Canvas 上，保存时才真正烧进图片。
 struct AnnotationEditorView: View {
+    @Environment(\.benchPalette) private var palette
     @ObservedObject var model: AnnotationEditorModel
     var onClose: () -> Void
 
@@ -17,7 +18,7 @@ struct AnnotationEditorView: View {
             GeometryReader { proxy in
                 let mapper = CoordinateMapper(viewSize: proxy.size, deviceSize: model.imageSize)
                 ZStack {
-                    Color(nsColor: .underPageBackgroundColor)
+                    palette.canvas
 
                     Image(nsImage: model.displayImage)
                         .resizable()
@@ -118,7 +119,7 @@ struct AnnotationEditorView: View {
                 HStack {
                     Text(message)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(palette.error)
                     Spacer()
                 }
             }
