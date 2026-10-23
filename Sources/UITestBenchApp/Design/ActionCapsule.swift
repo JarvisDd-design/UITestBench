@@ -75,11 +75,14 @@ struct ActionCapsule: View {
                 restartMenu
 
             case let .busy(text):
-                ProgressView().controlSize(.small)
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel("处理中")
                 Text(text)
                     .font(.system(size: 12))
                     .foregroundStyle(palette.textSecondary)
                     .lineLimit(1)
+                    .help(text)
             }
         }
         .padding(.horizontal, 14)
@@ -105,7 +108,7 @@ struct ActionCapsule: View {
         }
         .buttonStyle(BenchSecondaryButtonStyle(height: 28))
         .disabled(!device.isRunning || screenshot.isCapturing)
-        .help("抓取当前画面，冻结后标注")
+        .help(device.isRunning ? "抓取当前画面，冻结后标注" : "启动设备后可截图")
     }
 
     private var restartMenu: some View {
@@ -117,6 +120,8 @@ struct ActionCapsule: View {
             Label("重开", systemImage: "arrow.clockwise")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(palette.textPrimary)
+                .frame(minHeight: 28)
+                .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
