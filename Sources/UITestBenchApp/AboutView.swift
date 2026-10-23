@@ -9,33 +9,34 @@ struct AboutView: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.benchPalette) private var palette
     @State private var showsLicense = false
 
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "rectangle.and.hand.point.up.left")
                 .font(.system(size: 44, weight: .light))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(palette.limeInk)
 
             VStack(spacing: 4) {
                 Text("UI验收台")
                     .font(.title2.weight(.semibold))
                 Text("版本 \(Self.appVersion)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.textSecondary)
             }
 
             Text("把 Android 安装包放进本地模拟器里，用鼠标直接看界面、截图、标注。")
                 .font(.callout)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 340)
 
             VStack(spacing: 8) {
                 Text("本工具包含 scrcpy 的服务端程序 scrcpy-server.jar，版权归 Genymobile 所有，按 Apache License 2.0 发布。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 360)
