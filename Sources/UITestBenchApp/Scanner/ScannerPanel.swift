@@ -415,7 +415,7 @@ private final class ScannerFrameView: NSView {
             xRadius: pill.height / 2,
             yRadius: pill.height / 2
         )
-        NSColor.black.withAlphaComponent(0.45).setFill()
+        hintFillColor.setFill()
         background.fill()
 
         let textRect = NSRect(
@@ -472,6 +472,13 @@ private final class ScannerFrameView: NSView {
         isDark
             ? NSColor.black.withAlphaComponent(0.80)
             : NSColor.white.withAlphaComponent(0.85)
+    }
+
+    /// 提示胶囊自带深底：浅色主题下 0.45 只够 3.75:1，压到 0.55 才过 4.5。
+    private var hintFillColor: NSColor {
+        isDark
+            ? NSColor.black.withAlphaComponent(0.45)
+            : NSColor.black.withAlphaComponent(0.55)
     }
 
     private var closeFillColor: NSColor {
