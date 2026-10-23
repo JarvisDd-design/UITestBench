@@ -42,4 +42,13 @@ public struct DockDrawerState: Equatable, Sendable {
         pinned = nil
         hovered = nil
     }
+
+    /// 点在这个窗口里要不要收起抽屉。
+    ///
+    /// sheet（比如「关于」）是挂在抽屉上的独立窗口，里面的点击坐标是 sheet 自己的，
+    /// 不能拿来和坞宽比较，否则点 sheet 右半边就会把抽屉连同 sheet 一起关掉。
+    public func shouldDismissOnClick(atX x: CGFloat, dockWidth: CGFloat, isSheet: Bool) -> Bool {
+        guard pinned != nil, !isSheet else { return false }
+        return x > dockWidth
+    }
 }

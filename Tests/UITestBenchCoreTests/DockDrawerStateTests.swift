@@ -90,4 +90,35 @@ final class DockDrawerStateTests: XCTestCase {
         XCTAssertNil(state.hovered)
         XCTAssertEqual(state.presented, .device)
     }
+
+    func testPinnedDrawerDismissesOnClickRightOfDock() {
+        var state = DockDrawerState()
+        state.pin(.settings)
+        XCTAssertTrue(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: false))
+    }
+
+    func testClickInsideDockDoesNotDismissPinnedDrawer() {
+        var state = DockDrawerState()
+        state.pin(.settings)
+        XCTAssertFalse(state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: false))
+    }
+
+    func testClickOnDockBoundaryDoesNotDismiss() {
+        var state = DockDrawerState()
+        state.pin(.settings)
+        XCTAssertFalse(state.shouldDismissOnClick(atX: 372, dockWidth: 372, isSheet: false))
+    }
+
+    func testUnpinnedHoverDrawerIsNeverDismissedByClick() {
+        var state = DockDrawerState()
+        state.hover(.device)
+        XCTAssertFalse(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: false))
+    }
+
+    func testClicksInsideASheetNeverDismissPinnedDrawer() {
+        var state = DockDrawerState()
+        state.pin(.settings)
+        XCTAssertFalse(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: true))
+        XCTAssertFalse(state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: true))
+    }
 }

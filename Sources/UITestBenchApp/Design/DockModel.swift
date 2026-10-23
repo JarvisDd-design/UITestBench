@@ -96,8 +96,13 @@ final class DockModel: ObservableObject {
     func startOutsideClickMonitor(dockWidth: CGFloat) {
         guard outsideMonitor == nil else { return }
         outsideMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            guard let self, self.state.pinned != nil else { return event }
-            if event.locationInWindow.x > dockWidth {
+            guard let self else { return event }
+            let isSheet = event.window?.sheetParent != nil
+            if self.state.shouldDismissOnClick(
+                atX: event.locationInWindow.x,
+                dockWidth: dockWidth,
+                isSheet: isSheet
+            ) {
                 self.dismiss()
             }
             return event
@@ -113,10 +118,17 @@ final class DockModel: ObservableObject {
 
     /// 收起必须记住是给哪个模块排的：期间可能已经换到另一个抽屉，
     /// 到点再无条件 clearHover 会把新展开的抽屉关掉。
+    /// 「关于」等 sheet 挂在抽屉上；指针移到 sheet 上不算离开抽屉。
+    private var hasSheetAttached: Bool {
+        NSApp.keyWindow?.sheetParent != nil
+    }
+
     private func scheduleClose(_ module: DockModule) {
+        guard !hasSheetAttached else { return }
         cancelClose()
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.state.pinned == nil, self.state.hovered == module else {
+            guard let self, !self.hasSheetAttached,
+                  self.state.pinned == nil, self.state.hovered == module else {
                 return
             }
             self.state.clearHover()
