@@ -11,7 +11,7 @@
 | 设备种子 | `1f646a861890fbdd` | `settings get secure android_id` 的返回值 | 不能，加白名单不会生效 |
 | AVD 的 `userkey` | 64 位十六进制 | 整台设备的随机密钥，SSAID 的输入之一 | 不能，不是应用 ID |
 
-工具界面「运行」区显示第一行是 16 位 SSAID，第二行是 32 位 MD5，两行各有复制按钮。按后台实际显示的列选。
+工具左侧坞「应用」抽屉的「运行状态」里，第一行是 16 位 SSAID，第二行是 32 位 MD5，两行各有复制按钮。按后台实际显示的列选。
 
 ## SSAID 怎么来的
 
@@ -82,7 +82,7 @@ ADB="$HOME/Library/Application Support/UI验收台/sdk/platform-tools/adb"
 | 两台电脑 ID 不同 | 先看界面有没有橙色「团队设备 ID」警告；再确认两台机器装的是同一版本、包的签名证书是否相同。 |
 | 后台值对不上，但都是 32 位 | 复制界面上的「MD5」那一行；不要拿 16 位值去和 32 位后台比。 |
 | 第一次启动设备多花了 10–30 秒 | 正在写团队密钥并重启系统框架，属正常；之后启动不会重复。 |
-| 写入失败 | 按警告里的说明停止设备后重试；仍失败就看「诊断」里的 adb 输出。 |
+| 写入失败 | 按警告里的说明停止设备后重试；仍失败就看左侧坞「诊断」抽屉里的 adb 输出。 |
 | 开发只认 OAID | 模拟器没有 OAID，IMEI 也为空；需要开发支持用 Android ID 加白。 |
 
 实现位置：`Sources/UITestBenchCore/DeviceIdentity.swift`（读取、解析、MD5、建表）与 `Sources/UITestBenchCore/TeamDeviceKeyProvisioner.swift`（写入与恢复）。

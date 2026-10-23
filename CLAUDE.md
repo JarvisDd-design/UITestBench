@@ -4,7 +4,7 @@
 
 ## 项目
 
-UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.3.0。权威计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9），计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
+UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.3.0。基础计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9）；1.3.0 主窗口改版的计划与实测在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
 
 ## 常用命令
 
@@ -28,7 +28,7 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 
 ## 工程约定
 
-- Swift 5.9，部署目标 **macOS 12.3**。`Package.swift` 只能写 `.v12`（SwiftPM 没有 12.3），所以 ScreenCaptureKit 代码一律用 `@available(macOS 12.3, *)` 包住；发布下限以 `project.yml` 为准。不要用 `@Observable`、`NavigationSplitView`、`ContentUnavailableView`；用 `ObservableObject` + `@Published` 和 `HSplitView`。
+- Swift 5.9，部署目标 **macOS 12.3**。`Package.swift` 只能写 `.v12`（SwiftPM 没有 12.3），所以 ScreenCaptureKit 代码一律用 `@available(macOS 12.3, *)` 包住；发布下限以 `project.yml` 为准。不要用 `@Observable`、`NavigationSplitView`、`ContentUnavailableView`；用 `ObservableObject` + `@Published`。1.3.0 起主窗口是「透明无标题栏窗口 + 左侧悬浮坞（72pt 轨道 + 300pt 抽屉槽）+ 手机画布」，不再用分栏容器；改布局前先读 [docs/architecture.md](docs/architecture.md)。
 - 双轨工程：`Package.swift`（SwiftPM）与 `project.yml`（XcodeGen）共用 `Sources/`。改了 `project.yml` 必须 `xcodegen generate`；`Project/UITestBenchApp-Info.plist` 是生成物。
 - 零第三方 Swift 依赖。唯一随包资源是 `Sources/UITestBenchApp/Resources/scrcpy-server.jar`；jar 与控制消息布局必须成对，不能单独升级。
 - `UITestBenchCore` 放纯逻辑，不依赖 SwiftUI；`UITestBenchApp` 只放界面与 Model。

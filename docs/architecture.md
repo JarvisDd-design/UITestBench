@@ -22,7 +22,7 @@ adb / emulator / scrcpy-server.jar / VideoToolbox / 文件系统
 
 `UITestBenchCore` 用协议把外部世界挡在外面（`CommandRunning`、`ProcessLaunching`、`SocketConnecting`、`MirrorFrameSource`、`MirrorInputSink`、`DeviceProvisioning`），所以绝大多数逻辑可以在没有模拟器的情况下做单测。真实环境的用例集中在 `Tests/UITestBenchCoreTests/Real*AcceptanceTests.swift`，默认跳过。
 
-App 层的主窗口是「左侧悬浮坞 + 手机屏画布」：坞是 72pt 轨道 + 300pt 抽屉槽（`DockRail` / `DockDrawer`），手机在画布上的位置固定（`PhoneStage` / `PhoneFrame`）。这一版也调整了部分输入语义（`KeyboardInput` 里删除/Esc 改为 `.ignored`，不再映射成设备按键）；镜像链路与坐标映射未改。
+App 层的主窗口是「左侧悬浮坞 + 手机屏画布」：坞是 72pt 轨道 + 300pt 抽屉槽（`DockRail` / `DockDrawer`），五个抽屉分别是素材（APK）、设备、应用（运行状态与设备 ID）、诊断、设置；手机在画布上的位置固定（`PhoneStage` / `PhoneFrame`），开合抽屉不会移动它。这一版也调整了部分输入语义（`KeyboardInput` 里删除/Esc 改为 `.ignored`，不再映射成设备按键）；镜像链路与坐标映射未改。
 
 ## 一次「运行」的数据流
 

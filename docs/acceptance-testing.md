@@ -103,4 +103,5 @@ xcodebuild test \
 
 ## 验收记录
 
+- 2026-10-23：1.3.0 发版。`swift test` 527 通过 / 30 skip；DMG 版本 1.3.0 / build 9，`codesign -v` 通过。主窗口改版（透明窗口、坞、二态主题、手机画布）的人工验收清单在 `docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md` 的 Task 28，**尚未逐条执行**；macOS 12.3 真机仍未验收。
 - 2026-10-21：`swift test` 与 `xcodebuild test` 全绿，真实环境用例如期 skip；生命周期套件默认 8 个用例通过，约 3 分钟；单独开启 `UITESTBENCH_TWO_AVDS=1` 后，全新第二台 AVD 冷启动写入团队密钥也得到同一个 `10f5f004470a2797`；1.1.0 与 1.1.1 DMG 已打包。
