@@ -120,8 +120,6 @@ struct ActionCapsule: View {
             Label("重开", systemImage: "arrow.clockwise")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(palette.textPrimary)
-                .frame(minHeight: 28)
-                .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
