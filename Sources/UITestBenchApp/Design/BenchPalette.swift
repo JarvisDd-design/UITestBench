@@ -23,7 +23,8 @@ struct BenchPalette {
     let surfaceOpaque: Color
     let textPrimary: Color
     let textSecondary: Color
-    /// 弱化文字；只用于 11pt 以上的说明性文字，对比度已按 4.5:1 校准。
+    /// 弱化文字；只用于 11pt 以上的说明性文字。
+    /// 抽屉卡面实测约 4.3–5.0:1，会随窗口背后的壁纸轻微浮动；要硬过 AA 见计划 Task 18 的取舍记录。
     let textTertiary: Color
     let separator: Color
     /// 自绘交通灯；两种主题下保持一致。
