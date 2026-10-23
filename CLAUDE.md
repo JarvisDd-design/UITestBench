@@ -4,7 +4,7 @@
 
 ## 项目
 
-UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.2.0。权威计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9），计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
+UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.3.0。权威计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9），计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
 
 ## 常用命令
 
@@ -12,7 +12,7 @@ UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 
 xcodegen generate                 # 改了 project.yml 后必须重跑
 swift build
 swift test                        # 真实模拟器用例默认 skip
-Scripts/package.sh 1.2.0          # 出 dist/UI验收台-1.2.0.dmg
+Scripts/package.sh 1.3.0          # 出 dist/UI验收台-1.3.0.dmg
 
 # 真实环境验收（约 3 分钟）
 UITESTBENCH_REAL_SETUP=1 \
@@ -40,6 +40,7 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 
 | 领域 | 文件 |
 |---|---|
+| 主窗口外壳与坞 | `BenchPalette`、`ThemeStore`、`BenchWindow`、`DockModel`、`DockRail`、`DockDrawer`、`PhoneFrame`、`PhoneStage`、`ActionCapsule` |
 | SDK 自举 | `SdkBootstrap`、`SdkRepository`、`SdkInstallPlan`、`SdkInstaller`、`FileDownloader`、`Checksum`、`ZipArchive` |
 | 路径与清理 | `AppPaths`、`SessionCleaner`、`SessionShutdown`、`Diagnostics` |
 | APK | `APKSource`、`APKAcquirer`、`ZipReader`、`AXmlParser`、`AndroidManifest`、`ApkInspector`、`CompatibilityChecker` |

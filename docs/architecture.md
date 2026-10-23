@@ -6,7 +6,7 @@
 
 ```
 UITestBenchApp (SwiftUI)
-  UITestBenchApp.swift     主窗口、左栏、右栏、截图模式
+  UITestBenchApp.swift     主窗口装配、手机舞台、窗口外壳
   SetupModel / RunModel / SessionModel / MirrorModel /
   ScreenshotModel / AnnotationEditorModel
   Scanner/                 透明取景框、ScreenCaptureKit、权限状态机
@@ -20,6 +20,8 @@ adb / emulator / scrcpy-server.jar / VideoToolbox / 文件系统
 ```
 
 `UITestBenchCore` 用协议把外部世界挡在外面（`CommandRunning`、`ProcessLaunching`、`SocketConnecting`、`MirrorFrameSource`、`MirrorInputSink`、`DeviceProvisioning`），所以绝大多数逻辑可以在没有模拟器的情况下做单测。真实环境的用例集中在 `Tests/UITestBenchCoreTests/Real*AcceptanceTests.swift`，默认跳过。
+
+App 层的主窗口是「左侧悬浮坞 + 手机屏画布」：坞是 72pt 轨道 + 300pt 抽屉槽（`DockRail` / `DockDrawer`），手机在画布上的位置固定（`PhoneStage` / `PhoneFrame`）。这一版只改外壳与视觉，镜像链路与坐标映射未改。
 
 ## 一次「运行」的数据流
 

@@ -1,14 +1,14 @@
 #!/bin/bash
 # 打一个可以直接发给设计同事的 .dmg。
 #
-#   Scripts/package.sh            默认 1.2.0，输出到 dist/
+#   Scripts/package.sh            默认 1.3.0，输出到 dist/
 #
 # 只出 Apple 芯片（arm64）版本：模拟器镜像也只用 arm64-v8a，Intel 机器上没有意义。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-VERSION="${1:-1.2.0}"
+VERSION="${1:-1.3.0}"
 APP_NAME="UI验收台"
 PRODUCT="UITestBenchApp"
 STAGE=".build/dmg-stage"
@@ -57,7 +57,7 @@ SCRIPT
 chmod +x "$STAGE/首次打开.command"
 
 cat > "$STAGE/使用说明.txt" <<'TEXT'
-UI验收台 1.2.0
+UI验收台 1.3.0
 
 第一次打开
   1. 把「UI验收台.app」拖进「应用程序」。
