@@ -74,6 +74,12 @@ final class ScreenScannerModel: ObservableObject {
     var onHit: ((DownloadLink) -> Void)?
     /// 用户选择「改用截图…」。
     var onFallback: (() -> Void)?
+    /// 扫码开始/结束时收起、恢复手机与吸附面板。
+    ///
+    /// 手机窗口是无边框的，`miniaturize` 对它无效；由 App 层注入
+    /// 「隐藏整组」和「恢复整组」，扫码时就不会挡在二维码前面。
+    var hideMainWindow: (() -> Void)?
+    var showMainWindow: (() -> Void)?
 
     private var capture: (any ScreenCapturing)?
     private var panel: ScannerPanel?
@@ -260,7 +266,11 @@ final class ScreenScannerModel: ObservableObject {
 
         panel.orderFrontRegardless()
         panel.makeKey()
-        mainWindow?.miniaturize(nil)
+        if let hideMainWindow {
+            hideMainWindow()
+        } else {
+            mainWindow?.miniaturize(nil)
+        }
 
         armingTask?.cancel()
         armingTask = Task { [weak self] in
@@ -553,6 +563,10 @@ final class ScreenScannerModel: ObservableObject {
     }
 
     private func restoreMainWindow() {
+        if let showMainWindow {
+            showMainWindow()
+            return
+        }
         guard let window = mainWindow else { return }
         NSApp.activate(ignoringOtherApps: true)
         if window.isMiniaturized {
@@ -562,12 +576,18 @@ final class ScreenScannerModel: ObservableObject {
     }
 
     private func resolveMainWindow(_ given: NSWindow?) -> NSWindow? {
-        if let given, !(given is ScannerPanel) { return given }
-        if let key = NSApp.keyWindow, !(key is ScannerPanel) { return key }
-        if let main = NSApp.mainWindow, !(main is ScannerPanel) { return main }
+        // 抽屉面板可以成为 key；扫码要裁的是手机窗口，不能跟着 key 跑。
+        // 手机窗口是唯一能成为 main 的窗口，优先用它。
+        if let given, isUsableMainWindow(given) { return given }
+        if let main = NSApp.mainWindow, isUsableMainWindow(main) { return main }
+        if let key = NSApp.keyWindow, isUsableMainWindow(key) { return key }
         return NSApp.windows.first {
-            $0.isVisible && $0.canBecomeMain && !($0 is ScannerPanel)
+            $0.isVisible && $0.canBecomeMain && isUsableMainWindow($0)
         }
+    }
+
+    private func isUsableMainWindow(_ window: NSWindow) -> Bool {
+        !(window is ScannerPanel) && !(window is BenchPanel)
     }
 
     private static func isPermissionDenied(_ error: Error) -> Bool {

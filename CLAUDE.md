@@ -4,7 +4,7 @@
 
 ## 项目
 
-UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.3.0。基础计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9）；1.3.0 主窗口改版的计划与实测在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
+UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.4.2。基础计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9）；主窗口改版（手机 + 三个吸附悬浮面板）的计划与实测在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
 
 ## 常用命令
 
@@ -12,7 +12,7 @@ UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 
 xcodegen generate                 # 改了 project.yml 后必须重跑
 swift build
 swift test                        # 真实模拟器用例默认 skip
-Scripts/package.sh 1.3.0          # 出 dist/UI验收台-1.3.0.dmg
+Scripts/package.sh 1.4.2          # 出 dist/UI验收台-1.4.2.dmg
 
 # 真实环境验收（约 3 分钟）
 UITESTBENCH_REAL_SETUP=1 \
@@ -28,7 +28,9 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 
 ## 工程约定
 
-- Swift 5.9，部署目标 **macOS 12.3**。`Package.swift` 只能写 `.v12`（SwiftPM 没有 12.3），所以 ScreenCaptureKit 代码一律用 `@available(macOS 12.3, *)` 包住；发布下限以 `project.yml` 为准。不要用 `@Observable`、`NavigationSplitView`、`ContentUnavailableView`；用 `ObservableObject` + `@Published`。1.3.0 起主窗口是「透明无标题栏窗口 + 左侧悬浮坞（72pt 轨道 + 300pt 抽屉槽）+ 手机画布」，不再用分栏容器；改布局前先读 [docs/architecture.md](docs/architecture.md)。
+- Swift 5.9，部署目标 **macOS 12.3**。`Package.swift` 只能写 `.v12`（SwiftPM 没有 12.3），所以 ScreenCaptureKit 代码一律用 `@available(macOS 12.3, *)` 包住；发布下限以 `project.yml` 为准。不要用 `@Observable`、`NavigationSplitView`、`ContentUnavailableView`；用 `ObservableObject` + `@Published`。1.4.0 起界面上没有传统的应用窗口：手机是无边框 `PhoneWindow`，坞胶囊、底胶囊、抽屉卡片是 `BenchPanel` 子窗口，由 `FloatingPanelsController` 吸附定位。改布局前先读 [docs/architecture.md](docs/architecture.md)。
+- 面板窗口的 `shadowPadding` 是 40pt，给 SwiftUI 卡片的阴影留空间；改小会在窗口边缘切出直边。坞/胶囊的拖动用 `BenchWindowController` 的 60Hz 定时器按鼠标屏幕坐标移动，不要换回按手势增量逐帧移动（会卡顿）。`PanelWakeObserver` 在应用激活或窗口成为 key 时整组 `orderFront`；删掉它会出现「只点哪块面板，哪块才浮上来」。
+- AVD 的 `hw.mainKeys` 保持 `yes`，系统才不会在屏幕底部画三键导航条；`AVDStore.hideNavigationBar` 负责原地迁移旧设备，只有真的改了文件才用 `-no-snapshot-load` 冷启动一次，之后恢复快照启动。显示分辨率不变，手机外框比例仍由 `DeviceProfile` 决定；应用启动时 `EmulatorController.adoptExistingProfile` 负责把磁盘上的实际分辨率同步回界面（机型选择本身不落盘）。
 - 双轨工程：`Package.swift`（SwiftPM）与 `project.yml`（XcodeGen）共用 `Sources/`。改了 `project.yml` 必须 `xcodegen generate`；`Project/UITestBenchApp-Info.plist` 是生成物。
 - 零第三方 Swift 依赖。唯一随包资源是 `Sources/UITestBenchApp/Resources/scrcpy-server.jar`；jar 与控制消息布局必须成对，不能单独升级。
 - `UITestBenchCore` 放纯逻辑，不依赖 SwiftUI；`UITestBenchApp` 只放界面与 Model。
@@ -40,10 +42,11 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 
 | 领域 | 文件 |
 |---|---|
-| 主窗口外壳与坞 | `BenchPalette`、`ThemeStore`、`BenchWindowController`、`DockModel`、`DockRail`、`DockDrawer`、`PhoneFrame`、`PhoneStage`、`ActionCapsule` |
+| 主窗口与吸附面板 | `AppModel`、`PhoneWindowView`、`PhoneFrame`、`BenchWindowController`（`PhoneWindow`）、`BenchPanel`、`FloatingPanelsController`、`WindowDragArea`、`DockPanelView`、`CapsulePanelView`、`DrawerPanelView`、`BenchPalette`、`ThemeStore` |
+| 坞与抽屉 | `DockModel`、`DockRail`、`DockDrawer`、`ActionCapsule`、`FloatingPanelLayoutCalculator`、`PhoneLayoutCalculator`、`DockDrawerState`、`DockEscapePolicy` |
 | SDK 自举 | `SdkBootstrap`、`SdkRepository`、`SdkInstallPlan`、`SdkInstaller`、`FileDownloader`、`Checksum`、`ZipArchive` |
 | 路径与清理 | `AppPaths`、`SessionCleaner`、`SessionShutdown`、`Diagnostics` |
-| APK | `APKSource`、`APKAcquirer`、`ZipReader`、`AXmlParser`、`AndroidManifest`、`ApkInspector`、`CompatibilityChecker` |
+| APK | `APKSource`、`APKAcquirer`、`DownloadedContent`、`APKPageLink`、`APKPageDetail`、`ZipReader`、`AXmlParser`、`AndroidManifest`、`ApkInspector`、`CompatibilityChecker` |
 | 二维码与扫码 | `DownloadLink`、`OrientedImage`、`BarcodeDetector`、`VisionBarcodeDetector`、`ScanCandidateSelector`、`ScanHitGate`、`ScanSession`、`QRCodeDecoder`、`CaptureRegionCalculator`；App 层 `Scanner/`（`ScreenRegionCapture`、`ScannerPanel`、`ScreenScannerModel`、`ScreenCapturePermission`） |
 | 设备 | `AVDConfiguration`、`AVDStore`、`DeviceProfile`、`EmulatorController`、`TeamDeviceKeyProvisioner` |
 | 运行应用 | `AppLifecycle`、`AppRunner`、`DeviceIdentity`、`ScreenshotCapturer` |
@@ -52,6 +55,8 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 | 截图与标注 | `Annotation`、`AnnotationRenderer`、界面里的 `AnnotationEditorModel` |
 
 滚轮**不发** `INJECT_SCROLL_EVENT`，由 `DragScrollSink` 合成短拖动（按下 → 6 步 → 停顿 → 抬起）。这是 AOSP 14 模拟器上实测的结果，别改回滚动消息；细节见代码注释与 [docs/architecture.md](docs/architecture.md)。
+
+坞、抽屉、底胶囊都是 `BenchPanel` 子窗口，`becomesKeyOnlyIfNeeded`；hover 打开的抽屉不是 key，所以 Esc 不能挂在视图的 `onExitCommand` 上，统一走 `DockModel.startEventMonitors` 的键盘监视器 + `DockEscapePolicy`（输入框里第一次 Esc 只结束编辑）。无边框手机窗口的 `miniaturize` 无效，隐藏/恢复一律走 `BenchWindowController.minimize()` / `showPhone()`，扫码收起主窗口也用它。
 
 ## 设备 ID
 

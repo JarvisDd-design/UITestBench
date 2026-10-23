@@ -49,9 +49,12 @@ public struct ZipReader {
 
             let nameStart = cursor + 46
             let nameBytes = try Self.slice(data, from: nameStart, length: nameLength)
-            guard let path = String(data: nameBytes, encoding: .utf8) else {
-                throw ZipError.invalidEntryName
-            }
+            // 有些 APK 的资源文件名是 GBK，且没有置 UTF-8 标志位。
+            // 一个条目名读不出来不该让整包被当成「不是 ZIP」；真正的
+            // AndroidManifest.xml 路径永远是 ASCII，按字节能对上。
+            let path = String(data: nameBytes, encoding: .utf8)
+                ?? String(data: nameBytes, encoding: .isoLatin1)
+                ?? ""
 
             parsed.append(
                 Entry(

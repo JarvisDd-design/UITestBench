@@ -5,12 +5,16 @@ import Foundation
 struct ZipFixtureBuilder {
     private struct Record {
         let path: String
+        /// 中央目录里原样的文件名字节。用来模拟非 UTF-8（如 GBK）的条目名。
+        let rawPath: Data?
         let contents: Data
         var compressed: Data = Data()
         var method: UInt16 = 0
         var unixPermissions: UInt16?
         var crc: UInt32 = 0
         var localHeaderOffset: UInt32 = 0
+
+        var nameBytes: Data { rawPath ?? Data(path.utf8) }
     }
 
     private var records: [Record] = []
@@ -19,6 +23,7 @@ struct ZipFixtureBuilder {
         var copy = self
         copy.records.append(Record(
             path: path,
+            rawPath: nil,
             contents: contents,
             compressed: contents,
             method: 0,
@@ -27,10 +32,23 @@ struct ZipFixtureBuilder {
         return copy
     }
 
+    func addingStoredEntry(rawPath: Data, contents: Data) -> ZipFixtureBuilder {
+        var copy = self
+        copy.records.append(Record(
+            path: "",
+            rawPath: rawPath,
+            contents: contents,
+            compressed: contents,
+            method: 0
+        ))
+        return copy
+    }
+
     func addingDeflatedEntry(path: String, contents: Data, unixPermissions: UInt16? = nil) -> ZipFixtureBuilder {
         var copy = self
         copy.records.append(Record(
             path: path,
+            rawPath: nil,
             contents: contents,
             compressed: Self.deflate(contents),
             method: 8,
@@ -47,7 +65,7 @@ struct ZipFixtureBuilder {
             var record = records[index]
             record.crc = CRC32.checksum(record.contents)
             record.localHeaderOffset = UInt32(output.count)
-            let nameBytes = Data(record.path.utf8)
+            let nameBytes = record.nameBytes
             let size = UInt32(record.compressed.count)
 
             output.appendLE(UInt32(0x0403_4b50))   // local file header signature
@@ -69,7 +87,7 @@ struct ZipFixtureBuilder {
 
         let centralStart = UInt32(output.count)
         for record in built {
-            let nameBytes = Data(record.path.utf8)
+            let nameBytes = record.nameBytes
             let size = UInt32(record.compressed.count)
             let madeBy: UInt16 = record.unixPermissions == nil ? 20 : 0x0314  // 高字节 3 = Unix
             let externalAttributes = UInt32(record.unixPermissions ?? 0) << 16

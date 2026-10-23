@@ -1,14 +1,10 @@
 import SwiftUI
 import UITestBenchCore
 
-/// 坞的尺寸关系：轨道 72 + 抽屉槽 300（左边距 8 + 抽屉 292）= 坞列 372。
+/// 坞胶囊与卡片共用的尺寸。
 enum DockMetrics {
-    static let railWidth: CGFloat = 72
-    static let drawerInset: CGFloat = 8
+    static let railWidth: CGFloat = 68
     static let drawerWidth: CGFloat = 292
-    static let drawerSlotWidth: CGFloat = 300   // drawerInset + drawerWidth
-    static let columnWidth: CGFloat = 372       // railWidth + drawerSlotWidth
-    static let drawerTopInset: CGFloat = 48
     static let cardMaxHeight: CGFloat = 560
 }
 
@@ -29,27 +25,7 @@ private struct ContentHeightKey: PreferenceKey {
 
 struct DockDrawer: View {
     let module: DockModule
-    @ObservedObject var dock: DockModel
-
-    let paths: AppPaths
-    @ObservedObject var device: EmulatorController
-    @ObservedObject var apk: APKPanelModel
-    @ObservedObject var scanner: ScreenScannerModel
-    @ObservedObject var run: RunModel
-    @ObservedObject var session: SessionModel
-    @ObservedObject var theme: ThemeStore
-    @ObservedObject var window: BenchWindowController
-
-    @Binding var profileIndex: Int
-    @Binding var customWidth: String
-    @Binding var customHeight: String
-    @Binding var customDensity: String
-    @Binding var showsCustomResolution: Bool
-    @Binding var actionError: String?
-
-    let onToggleDevice: () -> Void
-    let onSwitchPreset: (Int) -> Void
-    let onApplyCustomResolution: () -> Void
+    @ObservedObject var app: AppModel
 
     @Environment(\.benchPalette) private var palette
 
@@ -100,8 +76,8 @@ struct DockDrawer: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .strokeBorder(palette.separator.opacity(0.55), lineWidth: 0.5)
         )
-        .shadow(color: palette.shadowNear, radius: 18, y: 8)
-        .onHover { dock.drawerHover($0) }
+        .shadow(color: palette.shadowNear, radius: 22, y: 9)
+        .onHover { app.dock.drawerHover($0) }
     }
 
     /// 卡片总高 = 头部 + 1pt 分隔线 + 滚动区；滚动区最多拿到上限剩下的高度。
@@ -117,7 +93,7 @@ struct DockDrawer: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(palette.textPrimary)
             Spacer()
-            Button { dock.dismiss() } label: {
+            Button { app.dock.dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(palette.textSecondary)
@@ -137,92 +113,31 @@ struct DockDrawer: View {
     private var content: some View {
         switch module {
         case .material:
-            APKPanelView(model: apk, scanner: scanner)
+            APKPanelView(model: app.apk, scanner: app.scanner)
         case .device:
             DeviceDrawer(
-                device: device,
-                profileIndex: $profileIndex,
-                customWidth: $customWidth,
-                customHeight: $customHeight,
-                customDensity: $customDensity,
-                showsCustomResolution: $showsCustomResolution,
-                actionError: $actionError,
-                onToggleDevice: onToggleDevice,
-                onSwitchPreset: onSwitchPreset,
-                onApplyCustomResolution: onApplyCustomResolution
+                device: app.device,
+                profileIndex: $app.profileIndex,
+                customWidth: $app.customWidth,
+                customHeight: $app.customHeight,
+                customDensity: $app.customDensity,
+                showsCustomResolution: $app.showsCustomResolution,
+                actionError: $app.actionError,
+                onToggleDevice: { app.toggleDevice() },
+                onSwitchPreset: { app.switchToPreset($0) },
+                onApplyCustomResolution: { app.applyCustomResolution() }
             )
         case .app:
-            AppDrawer(device: device, run: run, session: session, apk: apk.acquired)
+            AppDrawer(
+                device: app.device,
+                run: app.run,
+                session: app.session,
+                apk: app.apk.acquired
+            )
         case .diagnostics:
-            DiagnosticsDrawer(paths: paths, device: device)
+            DiagnosticsDrawer(paths: app.paths, device: app.device)
         case .settings:
-            SettingsDrawer(theme: theme, window: window)
+            SettingsDrawer(theme: app.theme, window: app.window)
         }
-    }
-}
-
-struct DockColumn: View {
-    let paths: AppPaths
-    @ObservedObject var device: EmulatorController
-    @ObservedObject var apk: APKPanelModel
-    @ObservedObject var scanner: ScreenScannerModel
-    @ObservedObject var run: RunModel
-    @ObservedObject var session: SessionModel
-    @ObservedObject var theme: ThemeStore
-    @ObservedObject var window: BenchWindowController
-    @ObservedObject var dock: DockModel
-
-    @Binding var profileIndex: Int
-    @Binding var customWidth: String
-    @Binding var customHeight: String
-    @Binding var customDensity: String
-    @Binding var showsCustomResolution: Bool
-    @Binding var actionError: String?
-
-    let onToggleDevice: () -> Void
-    let onSwitchPreset: (Int) -> Void
-    let onApplyCustomResolution: () -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            DockRail(dock: dock, theme: theme, window: window)
-                .frame(width: DockMetrics.railWidth)
-
-            ZStack(alignment: .topLeading) {
-                if let module = dock.presented {
-                    DockDrawer(
-                        module: module,
-                        dock: dock,
-                        paths: paths,
-                        device: device,
-                        apk: apk,
-                        scanner: scanner,
-                        run: run,
-                        session: session,
-                        theme: theme,
-                        window: window,
-                        profileIndex: $profileIndex,
-                        customWidth: $customWidth,
-                        customHeight: $customHeight,
-                        customDensity: $customDensity,
-                        showsCustomResolution: $showsCustomResolution,
-                        actionError: $actionError,
-                        onToggleDevice: onToggleDevice,
-                        onSwitchPreset: onSwitchPreset,
-                        onApplyCustomResolution: onApplyCustomResolution
-                    )
-                    .padding(.leading, DockMetrics.drawerInset)
-                    .padding(.top, DockMetrics.drawerTopInset)
-                    .transition(.opacity.combined(with: .offset(x: -10)))
-                }
-            }
-            .frame(width: DockMetrics.drawerSlotWidth, alignment: .topLeading)
-            .frame(maxHeight: .infinity, alignment: .top)
-        }
-        .frame(width: DockMetrics.columnWidth)
-        .frame(maxHeight: .infinity)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: dock.presented)
     }
 }

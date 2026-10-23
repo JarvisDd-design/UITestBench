@@ -40,8 +40,10 @@ public struct ApkInfo: Equatable {
 }
 
 public enum ApkInspectionError: Error, Equatable {
-    /// 不是 ZIP，或者 ZIP 结构已损坏。
+    /// 内容根本不是 ZIP（常见于链接返回了网页或普通文件）。
     case notAZipArchive
+    /// 以 `PK` 开头，但 ZIP 结构读不出来：下载不完整、ZIP64 或条目损坏。
+    case damagedArchive
     /// 包根目录下没有 AndroidManifest.xml。
     case manifestMissing
     /// AndroidManifest.xml 存在，但不是可解析的二进制 XML。
@@ -56,7 +58,9 @@ public enum ApkInspector {
         do {
             zip = try ZipReader(data: data)
         } catch {
-            throw ApkInspectionError.notAZipArchive
+            throw Self.startsWithZIPSignature(data)
+                ? ApkInspectionError.damagedArchive
+                : ApkInspectionError.notAZipArchive
         }
 
         guard zip.entries.contains(where: { $0.path == manifestPath }) else {
@@ -85,6 +89,12 @@ public enum ApkInspector {
             isSplitApk: root.attribute(named: "split") != nil,
             byteCount: data.count
         )
+    }
+
+    private static func startsWithZIPSignature(_ data: Data) -> Bool {
+        let bytes = data.prefix(2)
+        return bytes.count == 2 && bytes[bytes.startIndex] == 0x50
+            && bytes[bytes.index(after: bytes.startIndex)] == 0x4B
     }
 
     private static func abis(in zip: ZipReader) -> [String] {

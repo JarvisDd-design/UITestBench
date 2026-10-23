@@ -153,6 +153,63 @@ final class DownloaderTests: XCTestCase {
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
     }
+
+    /// 下载服务常按 UA 决定给文件还是给登录 / 下载页。默认就要像浏览器。
+    func testIdentifiesAsABrowserAndReportsFinalResponse() async throws {
+        let body = Data("payload".utf8)
+        StubURLProtocol.handler = { _ in
+            .init(
+                status: 200,
+                body: body,
+                headers: ["Content-Type": "application/vnd.android.package-archive"]
+            )
+        }
+
+        let result = try await downloader().download(url: url, to: destination)
+
+        let request = try XCTUnwrap(StubURLProtocol.requests.last)
+        XCTAssertTrue(
+            (request.value(forHTTPHeaderField: "User-Agent") ?? "").contains("Mozilla/5.0"),
+            "默认 UA 要是桌面浏览器，否则有些下载页会回网页"
+        )
+        XCTAssertFalse(
+            (request.value(forHTTPHeaderField: "Accept-Language") ?? "").isEmpty,
+            "中文下载页常按 Accept-Language 返回不同页面"
+        )
+        XCTAssertEqual(result.finalURL, url)
+        XCTAssertEqual(result.mimeType, "application/vnd.android.package-archive")
+        XCTAssertEqual(result.statusCode, 200)
+        XCTAssertEqual(result.byteCount, Int64(body.count))
+    }
+
+    /// 二维码常常是给手机看的，手机 UA 才能拿到 APK，而不是桌面落地页。
+    func testUsesTheRequestedUserAgent() async throws {
+        StubURLProtocol.handler = { _ in .init(status: 200, body: Data("x".utf8)) }
+
+        _ = try await downloader().download(
+            url: url,
+            to: destination,
+            userAgent: "Android-Test-UA"
+        )
+
+        XCTAssertEqual(
+            StubURLProtocol.requests.last?.value(forHTTPHeaderField: "User-Agent"),
+            "Android-Test-UA"
+        )
+    }
+
+    /// 从下载页里提取到的直链，带上页面的 Referer 才不会被防盗链拦下。
+    func testSendsRefererWhenProvided() async throws {
+        StubURLProtocol.handler = { _ in .init(status: 200, body: Data("x".utf8)) }
+        let page = URL(string: "https://example.com/download")!
+
+        _ = try await downloader().download(url: url, to: destination, referer: page)
+
+        XCTAssertEqual(
+            StubURLProtocol.requests.last?.value(forHTTPHeaderField: "Referer"),
+            page.absoluteString
+        )
+    }
 }
 
 // MARK: - 桩

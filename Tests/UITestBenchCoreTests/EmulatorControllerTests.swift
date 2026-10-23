@@ -36,6 +36,17 @@ final class EmulatorArgumentsTests: XCTestCase {
 
         XCTAssertTrue(arguments.contains("-wipe-data"))
     }
+
+    /// 改了 `hw.mainKeys` 后必须冷启动一次：快照里存的是旧系统框架的状态，
+    /// 恢复快照会让三键导航条跟着回来。冷启动只在迁移那一次发生。
+    func testColdBootFlagOnlyWhenRequested() {
+        let normal = EmulatorArguments.make(avdName: "uitestbench")
+        let cold = EmulatorArguments.make(avdName: "uitestbench", coldBoot: true)
+
+        XCTAssertFalse(normal.contains("-no-snapshot-load"))
+        XCTAssertTrue(cold.contains("-no-snapshot-load"))
+        XCTAssertFalse(cold.contains("-no-snapshot-save"), "冷启动后仍要能存快照")
+    }
 }
 
 @MainActor
@@ -123,6 +134,90 @@ final class EmulatorControllerTests: XCTestCase {
         XCTAssertEqual(environment["ANDROID_AVD_HOME"], store.root.path)
         let emulatorHome = try XCTUnwrap(environment["ANDROID_EMULATOR_HOME"])
         XCTAssertTrue(emulatorHome.hasPrefix(root.path), "模拟器自己的状态也要留在我们目录里：\(emulatorHome)")
+    }
+
+    /// 1.4.0 及更早的设备配置里写着 `hw.mainKeys=no`，底部会画三键导航条。
+    /// 升级后第一次启动要顺手改掉配置，并冷启动一次让快照里的旧框架状态失效。
+    func testStartMigratesAnExistingDeviceToNoNavigationBarWithAColdBoot() async throws {
+        let store = self.store
+        try store.create(AVDConfiguration(
+            name: "uitestbench",
+            displayName: "UI验收台",
+            systemImageDirectory: AVDConfiguration.defaultSystemImageDirectory,
+            profile: .standard
+        ))
+        let configURL = store.configINIURL(named: "uitestbench")
+        var values = AVDConfiguration.parseINI(try String(contentsOf: configURL, encoding: .utf8))
+        values["hw.mainKeys"] = "no"
+        let legacy = values.keys.sorted().map { "\($0)=\(values[$0]!)" }.joined(separator: "\n") + "\n"
+        try legacy.write(to: configURL, atomically: true, encoding: .utf8)
+
+        let runner = FakeCommandRunner(outputs: ["", "1"])
+        let launcher = FakeProcessLauncher()
+        let controller = makeController(runner: runner, launcher: launcher)
+
+        try await controller.start()
+
+        XCTAssertEqual(controller.state, .running(serial: "emulator-5554"))
+        XCTAssertTrue(
+            launcher.launches[0].arguments.contains("-no-snapshot-load"),
+            "迁移后第一次启动必须冷启动"
+        )
+        let migrated = AVDConfiguration.parseINI(try String(contentsOf: configURL, encoding: .utf8))
+        XCTAssertEqual(migrated["hw.mainKeys"], "yes")
+
+        try await controller.stop()
+    }
+
+    /// 机型选择不落盘；重开应用后界面默认「主流」，实际设备却可能是「大屏」。
+    /// 不把磁盘上的规格读回来，手机外框就会按错的比例留黑边。
+    func testAdoptsTheProfileOfAnExistingDevice() throws {
+        try store.create(AVDConfiguration(
+            name: "uitestbench",
+            displayName: "UI验收台",
+            systemImageDirectory: AVDConfiguration.defaultSystemImageDirectory,
+            profile: .large
+        ))
+        let controller = makeController()
+
+        XCTAssertEqual(controller.adoptExistingProfile(), .large)
+        XCTAssertEqual(controller.configuration.profile, .large)
+    }
+
+    /// 自定义分辨率没有对应预设，也要原样读回来。
+    func testAdoptsACustomResolution() throws {
+        let custom = DeviceProfile(name: "自定义", width: 1200, height: 2600, density: 480)
+        try store.create(AVDConfiguration(
+            name: "uitestbench",
+            displayName: "UI验收台",
+            systemImageDirectory: AVDConfiguration.defaultSystemImageDirectory,
+            profile: custom
+        ))
+        let controller = makeController()
+
+        XCTAssertEqual(controller.adoptExistingProfile(), custom)
+        XCTAssertEqual(controller.configuration.profile, custom)
+    }
+
+    func testAdoptLeavesDefaultsWhenNoDeviceExists() {
+        let controller = makeController()
+
+        XCTAssertNil(controller.adoptExistingProfile())
+        XCTAssertEqual(controller.configuration.profile, .standard)
+    }
+
+    func testFreshDeviceBootsFromSnapshotAsUsual() async throws {
+        let runner = FakeCommandRunner(outputs: ["", "1"])
+        let launcher = FakeProcessLauncher()
+        let controller = makeController(runner: runner, launcher: launcher)
+
+        try await controller.start()
+
+        XCTAssertFalse(
+            launcher.launches[0].arguments.contains("-no-snapshot-load"),
+            "新设备本来就冷启动，不该白白放弃快照"
+        )
+        try await controller.stop()
     }
 
     func testStartIsNoOpWhenAlreadyRunning() async throws {

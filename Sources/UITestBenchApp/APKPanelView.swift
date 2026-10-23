@@ -25,6 +25,9 @@ final class APKPanelModel: ObservableObject {
     @Published private(set) var state: State = .empty
     @Published private(set) var progress: Double?
     @Published private(set) var scanNotice: ScanNotice?
+    /// 最近一次远程来源的地址。失败时用它提供「在浏览器中打开」，
+    /// 网页 / 需要登录的分享链接只能这样交给系统浏览器。
+    @Published private(set) var remoteURL: URL?
     @Published var linkText = ""
 
     private let acquirer: APKAcquirer
@@ -193,6 +196,7 @@ final class APKPanelModel: ObservableObject {
         currentTask = nil
         loadID += 1
         progress = nil
+        remoteURL = nil
         state = .empty
         scanNotice = ScanNotice(link: link)
     }
@@ -202,8 +206,7 @@ final class APKPanelModel: ObservableObject {
         scanNotice = nil
         load(
             sourceName: "\(notice.link.host)/\(notice.link.fileName)",
-            policy: .scanned,
-            scanned: true
+            policy: .scanned
         ) {
             .remote(notice.link.url)
         }
@@ -218,13 +221,18 @@ final class APKPanelModel: ObservableObject {
         currentTask = nil
         loadID += 1
         progress = nil
+        remoteURL = nil
         state = .empty
+    }
+
+    func openRemoteInBrowser() {
+        guard let remoteURL else { return }
+        NSWorkspace.shared.open(remoteURL)
     }
 
     private func load(
         sourceName: String,
         policy: APKAcquisitionPolicy = .standard,
-        scanned: Bool = false,
         source: @escaping @Sendable () throws -> APKSource
     ) {
         currentTask?.cancel()
@@ -232,6 +240,9 @@ final class APKPanelModel: ObservableObject {
         let id = loadID
         scanNotice = nil
         progress = nil
+        // 先清掉上一次的链接；这次如果连来源都解析不出来，
+        // 失败提示下面不该留一个指向旧链接的按钮。
+        remoteURL = nil
         state = .loading(description: sourceName)
 
         currentTask = Task { [weak self] in
@@ -242,6 +253,13 @@ final class APKPanelModel: ObservableObject {
                     try source()
                 }.value
                 guard id == self.loadID, !Task.isCancelled else { return }
+
+                // 记住远程地址：失败时界面要提供「在浏览器中打开」。
+                if case let .remote(url) = resolved {
+                    self.remoteURL = url
+                } else {
+                    self.remoteURL = nil
+                }
 
                 let acquired = try await self.acquirer.acquire(resolved, policy: policy) { update in
                     let fraction = update.fraction
@@ -262,21 +280,15 @@ final class APKPanelModel: ObservableObject {
             } catch let error as APKAcquisitionError {
                 guard id == self.loadID, !Task.isCancelled else { return }
                 self.progress = nil
-                self.state = .failed(scanned ? Self.scannedExplanation(for: error) : error.explanation)
+                // 是网页、损坏的包还是网络问题，Core 已经分清楚了，
+                // 这里不要再统一改写成「二维码里可能不是 APK」。
+                self.state = .failed(error.explanation)
             } catch {
                 guard id == self.loadID, !Task.isCancelled else { return }
                 self.progress = nil
                 self.state = .failed(error.localizedDescription)
             }
         }
-    }
-
-    /// 扫码下载失败时补一句「二维码里可能不是 APK」，比裸的错误码更像人话。
-    private static func scannedExplanation(for error: APKAcquisitionError) -> String {
-        if case .inspection(.notAZipArchive) = error {
-            return "下载完成了，但这个文件不是 APK。二维码里可能是一个网页或普通文件。"
-        }
-        return error.explanation
     }
 
     nonisolated private static func fileURL(from item: NSSecureCoding?) -> URL? {
@@ -480,12 +492,21 @@ struct APKPanelView: View {
             }
 
         case let .failed(message):
-            HStack(alignment: .top, spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                Text(message)
-                    .font(.caption)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(message)
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                // 登录页 / 网盘分享页没法替用户登录，交回系统浏览器最稳。
+                if model.remoteURL != nil {
+                    Button("在浏览器中打开链接") { model.openRemoteInBrowser() }
+                        .buttonStyle(.link)
+                        .font(.caption)
+                        .help(model.remoteURL?.absoluteString ?? "")
+                }
             }
 
         case let .loaded(apk):

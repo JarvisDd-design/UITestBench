@@ -64,4 +64,20 @@ extension ZipReaderTests {
             XCTAssertEqual(error as? ZipReader.ZipError, .entryNotFound("missing.txt"))
         }
     }
+
+    /// 有些 APK 的资源文件名是 GBK。一个读不出来的名字不该让整个包被
+    /// 判成「不是 ZIP」——AndroidManifest.xml 本身永远是可读的 ASCII。
+    func testKeepsReadingWhenAnEntryNameIsNotUTF8() throws {
+        let gbkAssetName = Data([0xD6, 0xD0, 0xCE, 0xC4]) // 「中文」的 GBK 编码
+        let manifest = Data("manifest-bytes".utf8)
+        let archive = ZipFixtureBuilder()
+            .addingStoredEntry(path: "AndroidManifest.xml", contents: manifest)
+            .addingStoredEntry(rawPath: gbkAssetName, contents: Data("asset".utf8))
+            .build()
+
+        let reader = try ZipReader(data: archive)
+
+        XCTAssertTrue(reader.entries.contains { $0.path == "AndroidManifest.xml" })
+        XCTAssertEqual(try reader.contents(ofEntryAtPath: "AndroidManifest.xml"), manifest)
+    }
 }

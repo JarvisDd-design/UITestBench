@@ -66,8 +66,8 @@ struct BenchPalette {
         warning: Color(hex: 0xC93400),
         phoneBezel: Color(hex: 0x141416),
         phoneRim: Color.white.opacity(0.08),
-        shadowNear: Color.black.opacity(0.18),
-        shadowFar: Color.black.opacity(0.22)
+        shadowNear: Color.black.opacity(0.10),
+        shadowFar: Color.black.opacity(0.14)
     )
 
     static let dark = BenchPalette(
@@ -90,8 +90,8 @@ struct BenchPalette {
         warning: Color(hex: 0xFF9F0A),
         phoneBezel: Color(hex: 0x2C2C2E),
         phoneRim: Color.white.opacity(0.12),
-        shadowNear: Color.black.opacity(0.35),
-        shadowFar: Color.black.opacity(0.55)
+        shadowNear: Color.black.opacity(0.20),
+        shadowFar: Color.black.opacity(0.32)
     )
 }
 

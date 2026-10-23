@@ -84,4 +84,24 @@ final class ApkInspectorTests: XCTestCase {
             XCTAssertEqual(error as? ApkInspectionError, .notAZipArchive)
         }
     }
+
+    /// 资源文件名是 GBK 的包仍然是有效 APK，不能因为一个条目名读不出来就整包放弃。
+    func testInspectsAnAPKContainingANonUTF8EntryName() throws {
+        let data = APKFixture.minimalAPK(extraRawEntries: [
+            (pathBytes: Data([0xD6, 0xD0, 0xCE, 0xC4]), contents: Data("asset".utf8))
+        ])
+
+        let info = try ApkInspector.inspect(data)
+
+        XCTAssertEqual(info.packageName, "com.example.demo")
+    }
+
+    /// 以 PK 开头但结构读不出来：是包损坏或格式不受支持，不该说成「不是 ZIP」。
+    func testDistinguishesADamagedZipFromAnOrdinaryFile() {
+        let damaged = Data([0x50, 0x4B, 0x03, 0x04]) + Data(repeating: 0, count: 32)
+
+        XCTAssertThrowsError(try ApkInspector.inspect(damaged)) { error in
+            XCTAssertEqual(error as? ApkInspectionError, .damagedArchive)
+        }
+    }
 }

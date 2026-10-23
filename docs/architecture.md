@@ -6,8 +6,9 @@
 
 ```
 UITestBenchApp (SwiftUI)
-  UITestBenchApp.swift     主窗口装配、手机舞台
-  Design/                  配色 token、坞、手机画布、窗口外壳（BenchWindowController）
+  UITestBenchApp.swift     应用装配：AppDelegate 建手机窗口、commands、Settings
+  AppModel                 全应用唯一的 ObservableObject（模型、状态、动作）
+  Design/                  配色 token、坞胶囊、手机窗口、三个吸附面板
   SetupModel / RunModel / SessionModel / MirrorModel /
   ScreenshotModel / AnnotationEditorModel
   Scanner/                 透明取景框、ScreenCaptureKit、权限状态机
@@ -22,7 +23,9 @@ adb / emulator / scrcpy-server.jar / VideoToolbox / 文件系统
 
 `UITestBenchCore` 用协议把外部世界挡在外面（`CommandRunning`、`ProcessLaunching`、`SocketConnecting`、`MirrorFrameSource`、`MirrorInputSink`、`DeviceProvisioning`），所以绝大多数逻辑可以在没有模拟器的情况下做单测。真实环境的用例集中在 `Tests/UITestBenchCoreTests/Real*AcceptanceTests.swift`，默认跳过。
 
-App 层的主窗口是「左侧悬浮坞 + 手机屏画布」：坞是 72pt 轨道 + 300pt 抽屉槽（`DockRail` / `DockDrawer`），五个抽屉分别是素材（APK）、设备、应用（运行状态与设备 ID）、诊断、设置；手机在画布上的位置固定（`PhoneStage` / `PhoneFrame`），开合抽屉不会移动它。这一版也调整了部分输入语义（`KeyboardInput` 里删除/Esc 改为 `.ignored`，不再映射成设备按键）；镜像链路与坐标映射未改。
+App 层没有传统的应用窗口：可见的只有手机本身。手机是无边框、可等比缩放的 `PhoneWindow`（`BenchWindowController`），content 是 `PhoneFrame`（镜像画面 / 待机屏 / 安装向导）。坞胶囊（68pt）、底操作胶囊、抽屉卡片是三个独立 `BenchPanel`，用 `addChildWindow` 挂在手机窗口上，由 `FloatingPanelsController` 按 `FloatingPanelLayoutCalculator` 定位：坞顶边对齐手机、胶囊贴手机下方 12pt、抽屉在坞左侧 12pt 且垂直居中（空间不够时夹到屏幕内）。四个 `NSHostingView` 共用唯一的 `AppModel`，并转发各子模型的变化，所以任何一块都能直接读写同一份状态；在坞、胶囊或手机边框上拖动都会移动手机窗口，整组跟随。抽屉悬停 150ms 展开、移开 250ms 收起，点击坞项钉住；Esc 由 `DockModel` 的键盘监视器收起（输入框里的第一次 Esc 只结束编辑）。这也调整了部分输入语义（`KeyboardInput` 里删除/Esc 改为 `.ignored`，不再映射成设备按键）；镜像链路与坐标映射未改。
+
+面板的阴影由 SwiftUI 卡片自己画，面板窗口四周留 `FloatingPanelsController.shadowPadding = 40pt`，窗口边缘不会把阴影切出直边。坞/胶囊上的拖动只由手势负责「开始」，位移交给 `BenchWindowController` 的 60Hz 定时器按鼠标屏幕坐标计算；不能用 `DragGesture` 的增量逐帧移动窗口——窗口跟着鼠标走之后视图坐标系也在动，增量会越来越小，表现为卡顿。应用从后台被点回来、或手机/任一面板成为 key 时，`PanelWakeObserver` 把手机与三块面板一起 `orderFront`，避免「手机浮上来了、坞和胶囊还得单独点一下」。
 
 ## 一次「运行」的数据流
 
@@ -33,14 +36,19 @@ App 层的主窗口是「左侧悬浮坞 + 手机屏画布」：坞是 72pt 轨�
 2. **准备 APK**
    `APKSource` 表示本地文件 / 远程链接。四条入口最终都收敛到它：拖入 / 选择文件、剪贴板图片、屏幕取景框扫码、粘贴链接。
 
-   屏幕扫码走 `/Scanner`：`ScreenScannerModel` 在主窗口最小化后弹出 `ScannerPanel`——一张可拖动的玻璃卡片，中央是 320×320 的透明取景区，毛玻璃只铺在四条边框上，绝不覆盖取景区域。面板出现后先有 2 秒准备期：捕获照常启动（把 `SCStream` 的启动时间藏进准备期），但 `ScanSession` 的 `startAt` 让这段时间不判定，光带也停在原地。准备期结束后光带开始扫，`CaptureRegionCalculator` 把取景区的 AppKit 坐标换成 ScreenCaptureKit 的显示器本地坐标，`ScreenRegionCapture` 只捕获取景区（10 fps）。帧在后台串行队列交给 `ScanSession`：`VisionBarcodeDetector` 识别 QR → `ScanCandidateSelector` 取离框中心最近的码 → `ScanHitGate` 要求同一链接连续 2 帧才算命中。命中后停扫、显示对勾 1 秒，再恢复主窗口，只把 `DownloadLink` 交给 APK 面板弹确认条；用户点「下载」才调用 `APKAcquirer`。
+   屏幕扫码走 `/Scanner`：`ScreenScannerModel` 先收起手机与三个吸附面板（无边框窗口没法最小化），再弹出 `ScannerPanel`——一张可拖动的玻璃卡片，中央是 320×320 的透明取景区，毛玻璃只铺在四条边框上，绝不覆盖取景区域。面板出现后先有 2 秒准备期：捕获照常启动（把 `SCStream` 的启动时间藏进准备期），但 `ScanSession` 的 `startAt` 让这段时间不判定，光带也停在原地。准备期结束后光带开始扫，`CaptureRegionCalculator` 把取景区的 AppKit 坐标换成 ScreenCaptureKit 的显示器本地坐标，`ScreenRegionCapture` 只捕获取景区（10 fps）。帧在后台串行队列交给 `ScanSession`：`VisionBarcodeDetector` 识别 QR → `ScanCandidateSelector` 取离框中心最近的码 → `ScanHitGate` 要求同一链接连续 2 帧才算命中。命中后停扫、显示对勾 1 秒，再恢复主窗口，只把 `DownloadLink` 交给 APK 面板弹确认条；用户点「下载」才调用 `APKAcquirer`。
 
    `APKAcquirer` 负责下载本地化，得到文件。远程下载的文件落在 `tmp/apk/`，随会话清理；用户选中的原始 APK 不复制、不删除。扫码来源使用 `.scanned` 策略：取消或解析失败时删掉这次下载的临时文件与 `.part`。
+   二维码背后的链接常常不是直链。`DownloadedContent` 先按内容判定（ZIP 的 `PK` 头优先，其次是 HTML 前缀，MIME 只作补充）：桌面 UA 只拿到网页时，换手机 UA 再要一次（二维码通常是给手机扫的）；两张页面都交给 `APKPageLink` 找 `.apk` 直链，带上真正给出直链的那张页面的 `Referer` 再取。仍然只有网页就抛 `.webPage`，界面显示解释并给出「在浏览器中打开链接」——登录页和分享页只能交给系统浏览器。成功拿到包后会删掉中间下载的页面，只留最终 APK。
+   还有一类下载页是空壳：真正的地址由页面脚本调详情接口取得，HTML 里没有 `.apk`。`APKPageDetail` 按页面路径识别这种平台（如 `/content-web/download.html?id=…` 对应 `/content-web/app/detail.do`），照着页面自己的请求问一次 JSON 详情，取 `downloadUrl` 再下载；接口明确返回非 0 错误码时仍按网页提示，不硬猜。
+   下载请求带浏览器 `User-Agent`、`Accept-Language` 与可选的 `Referer`，并回报最终 URL、MIME 与状态码，供上面的判定使用。
    `ZipReader` 读 ZIP 中央目录 → `AXmlParser` 解析二进制 `AndroidManifest.xml` → `AndroidManifest` / `ApkInspector` 得到包名、版本、启动 Activity、ABI → `CompatibilityChecker` 给出阻断或放行。
 
 3. **启动设备**
    `AVDStore` 直接在 `avd/` 下写 `uitestbench.ini` 与 `uitestbench.avd/config.ini`（不依赖需要 JDK 的 `avdmanager`），通过 `ANDROID_AVD_HOME` 把 AVD 收在自己的目录里。
    `EmulatorController` 以 `-no-window -no-audio -no-boot-anim -gpu host` 启动 emulator，轮询 adb 直到开机；停止时先 `adb emu kill`，等模拟器把快照写完再允许下一次启动（`stopping` 状态就是为这个存在的）。
+   启动前 `AVDStore.hideNavigationBar` 会把 AVD 的 `hw.mainKeys` 改成 `yes`，系统框架因此不再画底部的返回 / 主页 / 多任务三键条。旧 AVD 第一次迁移时额外加 `-no-snapshot-load` 冷启动一次，防止旧快照把带导航条的 SystemUI 状态恢复回来；退出时照常保存快照，之后恢复快速启动。显示分辨率不变（仍是机型或自定义的宽高），手机外框比例继续由 `DeviceProfile` 决定。
+   应用启动时 `EmulatorController.adoptExistingProfile` 会把磁盘上已有设备的分辨率读回界面：机型选择本身不落盘，不这样做的话重开应用后界面默认「主流」，而设备可能是「大屏」或自定义分辨率，手机外框会按错误比例给画面留黑边。
    开机完成后、交出画面之前，`TeamDeviceKeyProvisioner` 检查并写入团队 `userkey`；失败只显示橙色警告，不阻断设备使用。
 
 4. **安装与启动应用**

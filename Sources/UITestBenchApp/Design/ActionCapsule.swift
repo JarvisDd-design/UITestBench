@@ -4,8 +4,9 @@ import UITestBenchCore
 /// 手机下方的操作胶囊：运行、截图、重开。状态判定全在 Core 的
 /// `ActionCapsuleResolver` 里，这里只负责摆按钮。
 struct ActionCapsule: View {
+    /// 由 AppModel 统一解析，手机窗口和面板共用同一份判定。
+    let state: ActionCapsuleState
     @ObservedObject var device: EmulatorController
-    @ObservedObject var apk: APKPanelModel
     @ObservedObject var run: RunModel
     @ObservedObject var screenshot: ScreenshotModel
 
@@ -17,18 +18,6 @@ struct ActionCapsule: View {
     @Environment(\.benchPalette) private var palette
 
     var body: some View {
-        let state = ActionCapsuleResolver.resolve(
-            ActionCapsuleInput(
-                hasAPK: apk.acquired?.compatibility.isCompatible == true,
-                deviceRunning: device.isRunning,
-                isRunning: run.isRunning,
-                isBusy: run.isBusy || screenshot.isCapturing,
-                busyText: run.isBusy
-                    ? run.statusText
-                    : (screenshot.isCapturing ? "正在截图…" : nil)
-            )
-        )
-
         Group {
             if state == .hidden {
                 Color.clear
@@ -97,7 +86,7 @@ struct ActionCapsule: View {
         .overlay(
             Capsule().strokeBorder(palette.separator.opacity(0.6), lineWidth: 0.5)
         )
-        .shadow(color: palette.shadowNear, radius: 12, y: 5)
+        .shadow(color: palette.shadowNear, radius: 14, y: 6)
     }
 
     private var screenshotButton: some View {

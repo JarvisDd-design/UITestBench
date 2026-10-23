@@ -12,7 +12,8 @@ enum APKFixture {
         minSdk: Int = 24,
         targetSdk: Int = 34,
         launcherActivity: String? = nil,
-        extraEntries: [String: Data] = [:]
+        extraEntries: [String: Data] = [:],
+        extraRawEntries: [(pathBytes: Data, contents: Data)] = []
     ) -> Data {
         var children: [AXmlFixtureBuilder.Node] = [
             .element(
@@ -80,6 +81,9 @@ enum APKFixture {
         var zip = ZipFixtureBuilder().addingStoredEntry(path: "AndroidManifest.xml", contents: manifest)
         for (path, contents) in extraEntries.sorted(by: { $0.key < $1.key }) {
             zip = zip.addingStoredEntry(path: path, contents: contents)
+        }
+        for entry in extraRawEntries {
+            zip = zip.addingStoredEntry(rawPath: entry.pathBytes, contents: entry.contents)
         }
         return zip.build()
     }

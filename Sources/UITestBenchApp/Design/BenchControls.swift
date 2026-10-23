@@ -55,20 +55,20 @@ struct TrafficLights: View {
 
     private enum Action {
         case close
-        case minimize
-        case fullScreen
+        case hide
+        case fit
     }
 
     var body: some View {
-        // 12 + 3×16 + 2×4 = 68pt，正好放进 72pt 轨道；间距对齐 macOS 的 20pt 圆心。
+        // 12 + 3×16 + 2×4 = 68pt，正好放进 68pt 胶囊；间距对齐 macOS 的 20pt 圆心。
         HStack(spacing: 4) {
-            dot(color: palette.trafficClose, symbol: "xmark", label: "关闭", action: .close)
-            dot(color: palette.trafficMinimize, symbol: "minus", label: "最小化", action: .minimize)
+            dot(color: palette.trafficClose, symbol: "xmark", label: "退出", action: .close)
+            dot(color: palette.trafficMinimize, symbol: "minus", label: "隐藏窗口", action: .hide)
             dot(
                 color: palette.trafficZoom,
                 symbol: "arrow.up.left.and.arrow.down.right",
-                label: "全屏",
-                action: .fullScreen
+                label: window.isFittedToScreen ? "恢复原来大小" : "适应屏幕",
+                action: .fit
             )
         }
         .padding(.leading, 12)
@@ -85,8 +85,8 @@ struct TrafficLights: View {
             // Button 的回调本来就在主线程，直接调即可；包 Task 反而多排队一轮。
             switch action {
             case .close: window.close()
-            case .minimize: window.minimize()
-            case .fullScreen: window.toggleFullScreen()
+            case .hide: window.minimize()
+            case .fit: window.toggleFitToScreen()
             }
         } label: {
             ZStack {

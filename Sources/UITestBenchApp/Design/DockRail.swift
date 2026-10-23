@@ -23,6 +23,7 @@ extension DockModule {
     }
 }
 
+/// 坞胶囊：宽度固定 68，高度贴合内容，悬浮在手机左侧。
 struct DockRail: View {
     @ObservedObject var dock: DockModel
     @ObservedObject var theme: ThemeStore
@@ -70,17 +71,26 @@ struct DockRail: View {
                     action: .alwaysOnTop
                 )
             }
-            .padding(.bottom, 14)
+            .padding(.bottom, 12)
         }
-        .frame(width: 72)
-        .frame(maxHeight: .infinity)
-        .background(.ultraThinMaterial)
-        .background(palette.surface.opacity(0.35))
-        .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(palette.separator.opacity(0.45))
-                .frame(width: 0.5)
-        }
+        .frame(width: DockMetrics.railWidth)
+        // 内容有多高胶囊就多高；不再拉满整个窗口高度。
+        .padding(.vertical, 2)
+        // 与卡片、底胶囊同一套垫高：不透明底靠近内容，材质放最底层。
+        // 只有材质时，深色主题的浅灰字会跟着亮桌面一起被抬亮。
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(palette.surfaceOpaque.opacity(0.92))
+        )
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(palette.separator.opacity(0.6), lineWidth: 0.5)
+        )
+        .shadow(color: palette.shadowNear, radius: 18, y: 7)
     }
 
     private enum UtilityAction {
@@ -133,14 +143,6 @@ struct DockRailItem: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(backgroundFill)
         )
-        .overlay(alignment: .leading) {
-            if isPresented {
-                Capsule()
-                    .fill(palette.lime)
-                    .frame(width: 3, height: 22)
-                    .offset(x: -6)
-            }
-        }
         .onHover { isHovering = $0 }
         .help(module.title)
     }

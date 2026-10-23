@@ -20,6 +20,26 @@ final class DeviceProfileTests: XCTestCase {
     func testPresetsAreListedInDisplayOrder() {
         XCTAssertEqual(DeviceProfile.presets, [.compact, .standard, .large])
     }
+
+    /// 磁盘上的设备规格要能找回界面上对应的预设；名字不参与匹配，
+    /// 旧版本写进 config.ini 的显示名可能和现在不一样。
+    func testFindsPresetByScreenSpecs() {
+        XCTAssertEqual(DeviceProfile.presetIndex(matching: .compact), 0)
+        XCTAssertEqual(DeviceProfile.presetIndex(matching: .standard), 1)
+        XCTAssertEqual(DeviceProfile.presetIndex(matching: .large), 2)
+        XCTAssertEqual(
+            DeviceProfile.presetIndex(
+                matching: DeviceProfile(name: "旧名字", width: 1440, height: 3120, density: 560)
+            ),
+            2
+        )
+    }
+
+    func testCustomResolutionHasNoPreset() {
+        let custom = DeviceProfile(name: "自定义", width: 1200, height: 2600, density: 480)
+
+        XCTAssertNil(DeviceProfile.presetIndex(matching: custom))
+    }
 }
 
 final class AVDConfigurationTests: XCTestCase {
@@ -43,6 +63,12 @@ final class AVDConfigurationTests: XCTestCase {
         XCTAssertEqual(config["hw.gpu.enabled"], "yes")
         XCTAssertEqual(config["hw.gpu.mode"], "auto")
         XCTAssertEqual(config["hw.ramSize"], "2048")
+    }
+
+    /// 验收看的是应用自己的界面，模拟器底部的「返回 / 主页 / 多任务」
+    /// 三键条是系统外壳：告诉框架没有实体按键时，它才会画出来。
+    func testConfigINIHasNoSoftwareNavigationBar() {
+        XCTAssertEqual(configuration.configINIValues["hw.mainKeys"], "yes")
     }
 
     func testConfigINIAppliesProfileResolution() {
@@ -172,6 +198,38 @@ final class AVDStoreTests: XCTestCase {
         XCTAssertEqual(values["custom.flag"], "keep-me", "不认识的键不能丢")
         XCTAssertEqual(values["hw.ramSize"], "2048")
         XCTAssertEqual(try store.profile(named: "uitestbench"), .large)
+    }
+
+    /// 已有设备的 config.ini 还是旧值（hw.mainKeys=no）。升级后要原地迁移，
+    /// 不能重建 AVD，也不能丢掉用户或其它版本写进去的键。
+    func testHideNavigationBarMigratesExistingConfig() throws {
+        let store = AVDStore(root: root)
+        try store.create(configuration)
+        let configURL = root.appendingPathComponent("uitestbench.avd/config.ini")
+        var values = AVDConfiguration.parseINI(
+            try String(contentsOf: configURL, encoding: .utf8)
+        )
+        values["hw.mainKeys"] = "no"
+        values["custom.flag"] = "keep-me"
+        let legacy = values.keys.sorted().map { "\($0)=\(values[$0]!)" }.joined(separator: "\n") + "\n"
+        try legacy.write(to: configURL, atomically: true, encoding: .utf8)
+
+        XCTAssertTrue(try store.hideNavigationBar(named: "uitestbench"))
+
+        let migrated = AVDConfiguration.parseINI(
+            try String(contentsOf: configURL, encoding: .utf8)
+        )
+        XCTAssertEqual(migrated["hw.mainKeys"], "yes")
+        XCTAssertEqual(migrated["custom.flag"], "keep-me", "迁移不能丢其它键")
+        XCTAssertEqual(migrated["hw.lcd.width"], "1080", "迁移只管导航栏")
+        XCTAssertFalse(try store.hideNavigationBar(named: "uitestbench"), "已经是新值就不该再报变更")
+    }
+
+    func testHideNavigationBarOfMissingDeviceThrows() {
+        let store = AVDStore(root: root)
+        XCTAssertThrowsError(try store.hideNavigationBar(named: "missing")) { error in
+            XCTAssertEqual(error as? AVDStoreError, .deviceNotFound("missing"))
+        }
     }
 
     func testDeleteRemovesDeviceAndConfig() throws {

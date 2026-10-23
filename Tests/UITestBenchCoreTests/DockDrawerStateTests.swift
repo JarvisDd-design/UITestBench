@@ -91,47 +91,105 @@ final class DockDrawerStateTests: XCTestCase {
         XCTAssertEqual(state.presented, .device)
     }
 
-    func testPinnedDrawerDismissesOnClickRightOfDock() {
+    // MARK: - 跨窗口（多面板）收起判定
+
+    func testClickingPhoneDismissesPinnedDrawer() {
         var state = DockDrawerState()
-        state.pin(.settings)
-        XCTAssertTrue(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: false))
+        state.pin(.device)
+        XCTAssertTrue(state.shouldDismissOnClick(target: .phone))
+        // 判定本身是纯函数，真正的收起由 DockModel 调 dismiss()。
+        state.dismiss()
+        XCTAssertNil(state.presented)
     }
 
-    func testClickInsideDockDoesNotDismissPinnedDrawer() {
+    func testClickingDockOrDrawerKeepsPinnedDrawer() {
         var state = DockDrawerState()
-        state.pin(.settings)
-        XCTAssertFalse(state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: false))
+        state.pin(.device)
+        XCTAssertFalse(state.shouldDismissOnClick(target: .dock))
+        XCTAssertFalse(state.shouldDismissOnClick(target: .drawer))
+        XCTAssertEqual(state.presented, .device)
     }
 
-    func testClickOnDockBoundaryDoesNotDismiss() {
+    func testClickingAuxiliaryPanelsKeepsPinnedDrawer() {
         var state = DockDrawerState()
-        state.pin(.settings)
-        XCTAssertFalse(state.shouldDismissOnClick(atX: 372, dockWidth: 372, isSheet: false))
+        state.pin(.device)
+        // 扫码浮层、底胶囊：点它们不该收起抽屉。
+        XCTAssertFalse(state.shouldDismissOnClick(target: .auxiliary))
+        XCTAssertFalse(state.shouldDismissOnClick(target: .sheet))
+        XCTAssertFalse(state.shouldDismissOnClick(target: .modal))
+        XCTAssertEqual(state.presented, .device)
     }
 
-    func testUnpinnedHoverDrawerIsNeverDismissedByClick() {
+    func testHoverDrawerIsNeverDismissedByWindowClick() {
         var state = DockDrawerState()
-        state.hover(.device)
-        XCTAssertFalse(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: false))
+        state.hover(.app)
+        XCTAssertFalse(state.shouldDismissOnClick(target: .phone))
+        XCTAssertEqual(state.presented, .app)
     }
 
-    func testClicksInsideASheetNeverDismissPinnedDrawer() {
+    func testDismissByWindowClickClearsPin() {
         var state = DockDrawerState()
-        state.pin(.settings)
-        XCTAssertFalse(state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: true))
-        XCTAssertFalse(state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: true))
+        state.pin(.diagnostics)
+        XCTAssertTrue(state.shouldDismissOnClick(target: .phone))
+        state.dismiss()
+        XCTAssertNil(state.pinned)
     }
 
-    func testClicksWhileAppIsModalNeverDismissPinnedDrawer() {
-        var state = DockDrawerState()
-        state.pin(.settings)
-        // 「选择本地文件…」的 NSOpenPanel 是应用级模态，点击坐标属于面板自己的窗口；
-        // 不能拿它和坞宽比较，否则点面板右半边会连抽屉一起收掉。
-        XCTAssertFalse(
-            state.shouldDismissOnClick(atX: 500, dockWidth: 372, isSheet: false, isModal: true)
+    // MARK: - Esc 收起判定
+
+    func testEscapeDismissesAnyPresentedDrawer() {
+        // hover 抽屉没有焦点，Esc 也要能收起；钉住的同理。
+        XCTAssertEqual(
+            DockEscapePolicy.action(
+                isPresented: true,
+                isEditingText: false,
+                hasForeignKeyWindow: false
+            ),
+            .dismiss
         )
-        XCTAssertFalse(
-            state.shouldDismissOnClick(atX: 100, dockWidth: 372, isSheet: false, isModal: true)
+    }
+
+    func testEscapeDoesNothingWithoutDrawer() {
+        XCTAssertEqual(
+            DockEscapePolicy.action(
+                isPresented: false,
+                isEditingText: false,
+                hasForeignKeyWindow: false
+            ),
+            .ignore
+        )
+    }
+
+    func testFirstEscapeWhileEditingEndsEditingInsteadOfDismissing() {
+        // SwiftUI 的 TextField 不会自己结束编辑：第一次 Esc 只把焦点交出去，
+        // 抽屉要等下一次 Esc 才收起。
+        XCTAssertEqual(
+            DockEscapePolicy.action(
+                isPresented: true,
+                isEditingText: true,
+                hasForeignKeyWindow: false
+            ),
+            .endEditing
+        )
+    }
+
+    func testEscapeIsLeftToScannerSheetAndModal() {
+        // 扫码浮层的 Esc 属于扫码；sheet / 模态各自处理。
+        XCTAssertEqual(
+            DockEscapePolicy.action(
+                isPresented: true,
+                isEditingText: false,
+                hasForeignKeyWindow: true
+            ),
+            .ignore
+        )
+        XCTAssertEqual(
+            DockEscapePolicy.action(
+                isPresented: true,
+                isEditingText: true,
+                hasForeignKeyWindow: true
+            ),
+            .ignore
         )
     }
 }

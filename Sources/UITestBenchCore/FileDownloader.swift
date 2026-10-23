@@ -16,6 +16,41 @@ public struct DownloadProgress: Equatable, Sendable {
     }
 }
 
+/// 下载完成后拿到的响应信息。URL 可能经过重定向，MIME 用来判断
+/// 服务器到底给了文件还是登录 / 下载页。
+public struct DownloadedFile: Equatable, Sendable {
+    public let url: URL
+    public let finalURL: URL
+    public let mimeType: String?
+    public let statusCode: Int
+    public let byteCount: Int64
+
+    public init(
+        url: URL,
+        finalURL: URL,
+        mimeType: String?,
+        statusCode: Int,
+        byteCount: Int64
+    ) {
+        self.url = url
+        self.finalURL = finalURL
+        self.mimeType = mimeType
+        self.statusCode = statusCode
+        self.byteCount = byteCount
+    }
+}
+
+/// 下载 APK 时使用的 UA。
+///
+/// 很多二维码是发给手机扫的：桌面 UA 可能拿到「用手机打开」的落地页，
+/// 手机 UA 才会直接给 APK。先用桌面 UA（更通用），遇到网页再换手机 UA。
+public enum DownloadUserAgent {
+    public static let desktop = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+    public static let android = "Mozilla/5.0 (Linux; Android 14; Pixel 8) "
+        + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+}
+
 public enum DownloadError: Error, Equatable {
     case httpStatus(Int)
     case sizeMismatch(expected: Int64, actual: Int64)
@@ -39,21 +74,26 @@ public final class FileDownloader: @unchecked Sendable {
             .appendingPathComponent(destination.lastPathComponent + ".part")
     }
 
+    @discardableResult
     public func download(
         url: URL,
         to destination: URL,
         expectedSHA1: String? = nil,
+        userAgent: String = DownloadUserAgent.desktop,
+        referer: URL? = nil,
         progress: (@Sendable (DownloadProgress) -> Void)? = nil
-    ) async throws {
+    ) async throws -> DownloadedFile {
         let transfer = Transfer(
             destination: destination,
             partialURL: Self.partialURL(for: destination),
             expectedSHA1: expectedSHA1,
+            userAgent: userAgent,
+            referer: referer,
             progress: progress
         )
         let handle = TransferHandle()
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<DownloadedFile, Error>) in
                 transfer.continuation = continuation
                 transfer.handle = handle
                 transfer.start(configuration: configuration, url: url)
@@ -70,9 +110,11 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
     let destination: URL
     let partialURL: URL
     let expectedSHA1: String?
+    let userAgent: String
+    let referer: URL?
     let progress: (@Sendable (DownloadProgress) -> Void)?
 
-    var continuation: CheckedContinuation<Void, Error>?
+    var continuation: CheckedContinuation<DownloadedFile, Error>?
     weak var handle: TransferHandle?
 
     private let stateLock = NSLock()
@@ -83,16 +125,23 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
     private var receivedNewBytes: Int64 = 0
     private var totalBytes: Int64?
     private var writeError: Error?
+    private var finalURL: URL?
+    private var mimeType: String?
+    private var statusCode: Int?
 
     init(
         destination: URL,
         partialURL: URL,
         expectedSHA1: String?,
+        userAgent: String,
+        referer: URL?,
         progress: (@Sendable (DownloadProgress) -> Void)?
     ) {
         self.destination = destination
         self.partialURL = partialURL
         self.expectedSHA1 = expectedSHA1
+        self.userAgent = userAgent
+        self.referer = referer
         self.progress = progress
     }
 
@@ -111,6 +160,17 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
         }
 
         var request = URLRequest(url: url)
+        // 没有 UA 的请求在下载页 / 防盗链前面经常拿到一页 HTML。默认就装成桌面浏览器。
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(
+            "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                + "application/vnd.android.package-archive;q=0.9,*/*;q=0.8",
+            forHTTPHeaderField: "Accept"
+        )
+        request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "Accept-Language")
+        if let referer {
+            request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer")
+        }
         if resumeOffset > 0 {
             request.setValue("bytes=\(resumeOffset)-", forHTTPHeaderField: "Range")
         }
@@ -135,6 +195,10 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
             finish(.failure(URLError(.badServerResponse)))
             return
         }
+
+        finalURL = http.url ?? dataTask.originalRequest?.url
+        mimeType = http.mimeType
+        statusCode = http.statusCode
 
         switch http.statusCode {
         case 200:
@@ -245,7 +309,13 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
                 try FileManager.default.removeItem(at: destination)
             }
             try FileManager.default.moveItem(at: partialURL, to: destination)
-            finish(.success(()))
+            finish(.success(DownloadedFile(
+                url: destination,
+                finalURL: finalURL ?? destination,
+                mimeType: mimeType,
+                statusCode: statusCode ?? 200,
+                byteCount: actual
+            )))
         } catch {
             finish(.failure(error))
         }
@@ -260,7 +330,7 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
         return finished
     }
 
-    private func finish(_ result: Result<Void, Error>) {
+    private func finish(_ result: Result<DownloadedFile, Error>) {
         stateLock.lock()
         if finished {
             stateLock.unlock()
@@ -272,8 +342,8 @@ private final class Transfer: NSObject, URLSessionDataDelegate, @unchecked Senda
         stateLock.unlock()
 
         switch result {
-        case .success:
-            continuation?.resume()
+        case let .success(file):
+            continuation?.resume(returning: file)
         case let .failure(error):
             continuation?.resume(throwing: error)
         }

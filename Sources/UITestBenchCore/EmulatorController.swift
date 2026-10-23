@@ -23,7 +23,15 @@ public enum EmulatorState: Equatable, Sendable {
 public enum EmulatorArguments {
     /// 模拟器自己不开窗：画面由 scrcpy 取，窗口留着只会多一个「黑影」。
     /// 不传 `-no-snapshot`，退出时要存快照，下次才能几秒内起来。
-    public static func make(avdName: String, port: Int = 5554, wipeData: Bool = false) -> [String] {
+    /// - Parameter coldBoot: 忽略已有快照、从头开机一次。改了 AVD 的
+    ///   `hw.mainKeys` 之后必须这样启动一次，否则快照里的旧系统框架会把
+    ///   三键导航条一起恢复回来。
+    public static func make(
+        avdName: String,
+        port: Int = 5554,
+        wipeData: Bool = false,
+        coldBoot: Bool = false
+    ) -> [String] {
         var arguments = [
             "-avd", avdName,
             "-port", String(port),
@@ -36,6 +44,10 @@ public enum EmulatorArguments {
         ]
         if wipeData {
             arguments.append("-wipe-data")
+        }
+        if coldBoot {
+            // 只放弃这一次的快照读取，退出时仍然正常保存，下次照样快速启动。
+            arguments.append("-no-snapshot-load")
         }
         return arguments
     }
@@ -231,6 +243,9 @@ public final class EmulatorController: ObservableObject {
             if !store.exists(named: configuration.name) {
                 try store.create(configuration)
             }
+            // 1.4.0 及更早的 config.ini 是 hw.mainKeys=no，底部会画三键导航条。
+            // 迁移过一次之后就返回 false，不会每次都冷启动。
+            let migratedNavigationBar = try store.hideNavigationBar(named: configuration.name)
             try FileManager.default.createDirectory(
                 at: emulatorHome,
                 withIntermediateDirectories: true
@@ -245,7 +260,8 @@ public final class EmulatorController: ObservableObject {
             let arguments = EmulatorArguments.make(
                 avdName: configuration.name,
                 port: port,
-                wipeData: wipeData
+                wipeData: wipeData,
+                coldBoot: migratedNavigationBar
             )
             handle = try launcher.launch(
                 executable: emulatorURL,
@@ -306,6 +322,20 @@ public final class EmulatorController: ObservableObject {
     }
 
     /// 换机型：改 config.ini，重启设备。分辨率只在启动时读，必须重启才生效。
+    /// 读回磁盘上已有设备的分辨率，并让控制器采用它。
+    ///
+    /// 界面上的机型选择不落盘：重开应用后默认是「主流」，而设备可能是上次
+    /// 调成的「大屏」或自定义分辨率。不同步的话，手机外框会按错误的比例
+    /// 给画面留黑边。没有设备时返回 nil，保留界面默认值。
+    @discardableResult
+    public func adoptExistingProfile() -> DeviceProfile? {
+        guard store.exists(named: configuration.name),
+              let profile = try? store.profile(named: configuration.name)
+        else { return nil }
+        configuration.profile = profile
+        return profile
+    }
+
     public func switchProfile(to profile: DeviceProfile) async throws {
         if store.exists(named: configuration.name) {
             try store.updateProfile(named: configuration.name, to: profile)

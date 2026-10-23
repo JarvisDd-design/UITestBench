@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 import UITestBenchCore
@@ -101,7 +102,56 @@ final class ShutdownCoordinator {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    let model = AppModel()
+    private var phoneWindow: PhoneWindow?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let profile = model.currentProfile
+        let screen = NSScreen.main?.visibleFrame
+            ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let width = min(
+            PhoneLayoutCalculator.defaultScreenWidth,
+            PhoneLayoutCalculator.maximumScreenWidth(
+                visibleSize: screen.size,
+                profile: profile
+            )
+        )
+        let size = PhoneLayoutCalculator.frameSize(forScreenWidth: width, profile: profile)
+
+        let window = PhoneWindow(
+            contentRect: CGRect(
+                x: screen.midX - size.width / 2,
+                y: screen.maxY - size.height - 60,
+                width: size.width,
+                height: size.height
+            ),
+            styleMask: [.borderless, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = NSHostingView(rootView: PhoneWindowView(app: model))
+        model.window.attach(window, app: model)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        phoneWindow = window
+
+        // 一秒后再允许设置窗口正常打开，避免误收用户主动打开的窗口。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            LaunchBehavior.suppressSettingsWindow = false
+        }
+    }
+
+    /// 手机窗口只是被隐藏时，点 Dock 图标回来；不要另开一个窗口。
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        model.window.showPhone()
+        return false
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let coordinator = ShutdownCoordinator.shared
         // 清理已经在跑：这次退出请求排队等它，别另起一轮。
@@ -114,8 +164,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return .terminateLater
     }
 
+    /// 面板都是独立窗口，手机窗口也可能只是被隐藏，不能把「最后一个窗口关闭」
+    /// 当成退出信号。退出统一走 ⌘W / 红点 / NSApp.terminate。
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        false
     }
 
     // 单窗口：不保存也不恢复窗口状态。否则从 1.2.0 升级的用户可能恢复出

@@ -15,7 +15,8 @@ final class DockModel: ObservableObject {
     private var hoverWork: DispatchWorkItem?
     private var pendingHover: DockModule?
     private var closeWork: DispatchWorkItem?
-    private var outsideMonitor: Any?
+    private var clickMonitor: Any?
+    private var keyMonitor: Any?
     /// 指针是否在抽屉里。离开轨道项的事件可能晚于进入抽屉的事件。
     private var drawerHovered = false
 
@@ -95,32 +96,57 @@ final class DockModel: ObservableObject {
         state.dismiss()
     }
 
-    /// 钉住后点窗口其他位置取消。坞列固定从窗口左边缘算 372pt。
-    func startOutsideClickMonitor(dockWidth: CGFloat) {
-        guard outsideMonitor == nil else { return }
-        outsideMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+    /// 钉住后点手机才收起；坞、抽屉、扫码浮层、sheet、模态都不收起。
+    /// 每个窗口是谁由面板控制器按身份判断，这里不再假设任何坐标。
+    ///
+    /// 同时挂 Esc：hover 打开的抽屉没有焦点，`onExitCommand` 收不到按键，
+    /// 只能靠本 App 的事件监视器按 key 窗口判定。
+    func startEventMonitors(classify: @escaping (NSWindow?) -> DockClickTarget) {
+        guard clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             guard let self else { return event }
-            let isSheet = event.window?.sheetParent != nil
-            // NSOpenPanel 之类的应用级模态也是独立窗口，坐标同样不能拿来和坞宽比较；
-            // 否则在「选择本地文件…」里点右半边会把抽屉一起收掉。
-            let isModal = NSApp.modalWindow != nil
-            if self.state.shouldDismissOnClick(
-                atX: event.locationInWindow.x,
-                dockWidth: dockWidth,
-                isSheet: isSheet,
-                isModal: isModal
-            ) {
+            if self.state.shouldDismissOnClick(target: classify(event.window)) {
                 self.dismiss()
             }
             return event
         }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.keyCode == 53 else { return event }
+            let target = classify(event.window)
+            let foreign: Bool
+            switch target {
+            case .auxiliary, .sheet, .modal: foreign = true
+            case .dock, .drawer, .phone: foreign = false
+            }
+            let isEditing = event.window?.firstResponder is NSTextView
+            switch DockEscapePolicy.action(
+                isPresented: self.presented != nil,
+                isEditingText: isEditing,
+                hasForeignKeyWindow: foreign
+            ) {
+            case .ignore:
+                return event
+            case .endEditing:
+                // SwiftUI 的 TextField 不会自己结束编辑，先交还焦点。
+                event.window?.makeFirstResponder(nil)
+                return nil
+            case .dismiss:
+                self.dismiss()
+                // 吞掉事件：Esc 收起抽屉后不要再传给别的响应者。
+                return nil
+            }
+        }
     }
 
-    func stopOutsideClickMonitor() {
-        if let outsideMonitor {
-            NSEvent.removeMonitor(outsideMonitor)
+    func stopEventMonitors() {
+        if let clickMonitor {
+            NSEvent.removeMonitor(clickMonitor)
         }
-        outsideMonitor = nil
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+        clickMonitor = nil
+        keyMonitor = nil
     }
 
     /// 「关于」等 sheet 挂在抽屉上；只要还有可见 sheet，就不许抽屉换模块或自动收起。

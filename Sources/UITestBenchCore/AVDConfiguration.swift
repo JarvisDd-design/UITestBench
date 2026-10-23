@@ -58,7 +58,10 @@ public struct AVDConfiguration: Equatable, Sendable {
             "hw.lcd.height": String(profile.height),
             "hw.lcd.density": String(profile.density),
             "hw.keyboard": "yes",
-            "hw.mainKeys": "no",
+            // 告诉系统框架「有实体按键」，它就不会在屏幕底部画返回/主页/多任务
+            // 三键条。验收看的是应用自己的界面，那条系统外壳只会占地方。
+            // 已有设备由 AVDStore.hideNavigationBar 原地迁移。
+            "hw.mainKeys": "yes",
             "hw.gpu.enabled": "yes",
             "hw.gpu.mode": "auto",
             "showDeviceFrame": "no"

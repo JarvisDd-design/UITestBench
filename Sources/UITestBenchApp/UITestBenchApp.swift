@@ -2,255 +2,80 @@ import AppKit
 import SwiftUI
 import UITestBenchCore
 
+/// SwiftUI 在只有 Settings 场景时会把它当作首个窗口自动打开。
+/// 启动后一秒内出现的设置窗口直接收回；之后用户从菜单打开不受影响。
+enum LaunchBehavior {
+    static var suppressSettingsWindow = true
+}
+
 @main
 struct UITestBenchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("UI验收台") {
-            ContentView()
-                .frame(minWidth: 1000, minHeight: 700)
-                .background(Color.clear)
+        // 主窗口由 AppDelegate 手工创建（无边框 + 可缩放），这里只保留
+        // SwiftUI 的菜单命令与一个设置窗口，避免 SwiftUI 再建一个普通窗口。
+        Settings {
+            SettingsWindowView(app: appDelegate.model)
         }
-        .windowStyle(.hiddenTitleBar)
         .commands {
-            // 空组会把「关闭」一起删掉，⌘W 就没了；这里显式补回关闭。
+            // 空组会把「关闭」一起删掉，⌘W 就没了；显式补回退出。
             CommandGroup(replacing: .newItem) {
                 Button("关闭窗口") {
-                    NSApp.keyWindow?.performClose(nil)
+                    NSApp.terminate(nil)
                 }
                 .keyboardShortcut("w", modifiers: .command)
+            }
+
+            CommandGroup(after: .appInfo) {
+                Button("显示手机窗口") {
+                    appDelegate.model.window.showPhone()
+                }
             }
         }
     }
 }
 
-struct ContentView: View {
-    private let paths = AppPaths.standard
-
-    @StateObject private var setup: SetupModel
-    @StateObject private var theme = ThemeStore()
-    @StateObject private var window = BenchWindowController()
-    @StateObject private var dock = DockModel()
-    @StateObject private var device: EmulatorController
-    @StateObject private var mirror: MirrorModel
-    @StateObject private var apk: APKPanelModel
-    @StateObject private var scanner = ScreenScannerModel()
-    @StateObject private var run = RunModel()
-    @StateObject private var screenshot = ScreenshotModel()
-    @StateObject private var session: SessionModel
-
-    @State private var profileIndex = 1
-    @State private var customWidth = "1080"
-    @State private var customHeight = "2400"
-    @State private var customDensity = "420"
-    @State private var showsCustomResolution = false
-    @State private var actionError: String?
-
-    init() {
-        let paths = AppPaths.standard
-        _setup = StateObject(wrappedValue: SetupModel(paths: paths))
-        _device = StateObject(wrappedValue: EmulatorController(
-            sdkDirectory: paths.sdkDirectory,
-            store: AVDStore(root: paths.avdDirectory),
-            launcher: ProcessLauncher(outputURL: paths.emulatorLogURL),
-            provisioner: TeamDeviceKeyProvisioner(sdkDirectory: paths.sdkDirectory)
-        ))
-        _mirror = StateObject(wrappedValue: MirrorModel(sdkDirectory: paths.sdkDirectory))
-        _apk = StateObject(wrappedValue: APKPanelModel(paths: paths))
-        _session = StateObject(wrappedValue: SessionModel(paths: paths))
-    }
+/// 设置窗口现在只是补充入口；主要设置仍在坞的「设置」抽屉里。
+struct SettingsWindowView: View {
+    @ObservedObject var app: AppModel
 
     var body: some View {
-        HStack(spacing: 0) {
-            DockColumn(
-                paths: paths,
-                device: device,
-                apk: apk,
-                scanner: scanner,
-                run: run,
-                session: session,
-                theme: theme,
-                window: window,
-                dock: dock,
-                profileIndex: $profileIndex,
-                customWidth: $customWidth,
-                customHeight: $customHeight,
-                customDensity: $customDensity,
-                showsCustomResolution: $showsCustomResolution,
-                actionError: $actionError,
-                onToggleDevice: toggleDevice,
-                onSwitchPreset: switchToPreset,
-                onApplyCustomResolution: applyCustomResolution
-            )
+        VStack(alignment: .leading, spacing: 14) {
+            Text("UI验收台")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color.primary)
 
-            if setup.phase == .ready {
-                PhoneStage(
-                    device: device,
-                    mirror: mirror,
-                    screenshot: screenshot,
-                    run: run,
-                    apk: apk,
-                    profile: currentProfile,
-                    onStartDevice: toggleDevice,
-                    onScan: { scanner.start(from: NSApp.keyWindow) },
-                    onChooseFile: { apk.chooseFile() },
-                    onReconnect: {
-                        mirror.start(serial: device.serial)
-                    }
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                SetupStage(setup: setup)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Toggle("深色外观", isOn: Binding(
+                get: { app.theme.mode == .dark },
+                set: { app.theme.set($0 ? .dark : .light) }
+            ))
+            Toggle("窗口置顶", isOn: Binding(
+                get: { app.window.isAlwaysOnTop },
+                set: { if app.window.isAlwaysOnTop != $0 { app.window.toggleAlwaysOnTop() } }
+            ))
+            Button("适应屏幕") {
+                if !app.window.isFittedToScreen {
+                    app.window.toggleFitToScreen()
+                }
             }
+            .disabled(app.window.isFittedToScreen)
+
+            Text("更多设置请在左侧坞的「设置」里调整。")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
         }
+        .padding(24)
+        .frame(width: 360, alignment: .leading)
+        .benchTheme(app.theme.mode)
         .background(
-            WindowConfigurator { window.attach($0) }
-                .frame(width: 0, height: 0)
+            WindowAccessor { window in
+                guard LaunchBehavior.suppressSettingsWindow else { return }
+                LaunchBehavior.suppressSettingsWindow = false
+                DispatchQueue.main.async {
+                    window?.orderOut(nil)
+                }
+            }
         )
-        .background(Color.clear)
-        .benchTheme(theme.mode)
-        .animation(.easeInOut(duration: 0.2), value: theme.mode)
-        .onExitCommand { dock.dismiss() }
-        .onChange(of: device.state) { state in
-            if case let .running(serial) = state {
-                mirror.start(serial: serial)
-                run.attach(serial: serial, sdkDirectory: paths.sdkDirectory)
-                screenshot.attach(serial: serial, sdkDirectory: paths.sdkDirectory)
-                session.attach(serial: serial, sdkDirectory: paths.sdkDirectory)
-                Task { await session.clearPendingInstallIfNeeded() }
-            } else {
-                mirror.stop()
-                run.detach()
-                screenshot.detach()
-                session.detach()
-            }
-        }
-        .onChange(of: apk.state) { _ in
-            run.reset()
-        }
-        .onChange(of: run.isRunning) { running in
-            guard running, let name = apk.acquired?.info.packageName else { return }
-            session.recordLaunch(packageName: name)
-        }
-        .onChange(of: theme.mode) { mode in
-            scanner.setDarkAppearance(mode == .dark)
-        }
-        .onAppear {
-            session.startIfNeeded()
-            _ = setup.markReadyIfInstalled()
-            scanner.onHit = { link in
-                apk.presentScannedLink(link)
-            }
-            scanner.onFallback = {
-                apk.chooseFile()
-            }
-            scanner.setDarkAppearance(theme.mode == .dark)
-            dock.startOutsideClickMonitor(dockWidth: DockMetrics.columnWidth)
-
-            // 退出时先卸包、再关设备：设备关了 adb 就卸不掉了。
-            ShutdownCoordinator.shared.perform = {
-                scanner.shutdown()
-                await session.shutdown()
-                try? await device.stop()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-            scanner.shutdown()
-        }
-        .onDisappear {
-            dock.stopOutsideClickMonitor()
-            // 主窗口没了，扫描结果不该再回写到可能已销毁的模型上。
-            scanner.onHit = nil
-            scanner.onFallback = nil
-            scanner.shutdown()
-        }
-        .alert(
-            "截图失败",
-            isPresented: Binding(
-                get: { screenshot.errorMessage != nil },
-                set: { if !$0 { screenshot.clearError() } }
-            )
-        ) {
-            Button("好") { screenshot.clearError() }
-        } message: {
-            Text(screenshot.errorMessage ?? "")
-        }
-        .sheet(
-            isPresented: Binding(
-                get: { screenshot.editor != nil },
-                set: { if !$0 { screenshot.closeEditor() } }
-            )
-        ) {
-            if let editor = screenshot.editor {
-                AnnotationEditorView(model: editor) {
-                    screenshot.closeEditor()
-                }
-                .benchTheme(theme.mode)
-            }
-        }
-    }
-
-    private var currentProfile: DeviceProfile {
-        if profileIndex >= 0, DeviceProfile.presets.indices.contains(profileIndex) {
-            return DeviceProfile.presets[profileIndex]
-        }
-        if let width = Int(customWidth),
-           let height = Int(customHeight),
-           let density = Int(customDensity),
-           width > 0, height > 0, density > 0 {
-            return DeviceProfile(name: "自定义", width: width, height: height, density: density)
-        }
-        return .standard
-    }
-
-    private func toggleDevice() {
-        actionError = nil
-        let shouldStop = device.isRunning
-        Task {
-            do {
-                if shouldStop {
-                    // 卸载要用设备活着时的 adb，必须在 stop 之前。
-                    await session.prepareForDeviceStop()
-                    try await device.stop()
-                } else {
-                    try await device.start()
-                }
-            } catch {
-                actionError = error.localizedDescription
-            }
-        }
-    }
-
-    private func switchToPreset(_ index: Int) {
-        actionError = nil
-        let profile = DeviceProfile.presets[index]
-        Task {
-            do {
-                try await device.switchProfile(to: profile)
-            } catch {
-                actionError = error.localizedDescription
-            }
-        }
-    }
-
-    private func applyCustomResolution() {
-        guard let width = Int(customWidth),
-              let height = Int(customHeight),
-              let density = Int(customDensity),
-              width > 0, height > 0, density > 0
-        else { return }
-
-        actionError = nil
-        profileIndex = -1
-        let profile = DeviceProfile(name: "自定义", width: width, height: height, density: density)
-        Task {
-            do {
-                try await device.switchProfile(to: profile)
-            } catch {
-                actionError = error.localizedDescription
-            }
-        }
     }
 }

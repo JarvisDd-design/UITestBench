@@ -74,6 +74,24 @@ public struct AVDStore: Sendable {
         )
     }
 
+    /// 把已有设备的 `hw.mainKeys` 改成 `yes`，让系统不再画三键导航条。
+    ///
+    /// 返回值表示这次是否真的改了文件：调用方据此决定要不要冷启动一次。
+    /// 只改这一个键，用户或其它版本写进去的键原样保留。
+    @discardableResult
+    public func hideNavigationBar(named name: String) throws -> Bool {
+        let configURL = configINIURL(named: name)
+        guard let text = try? String(contentsOf: configURL, encoding: .utf8) else {
+            throw AVDStoreError.deviceNotFound(name)
+        }
+        var values = AVDConfiguration.parseINI(text)
+        guard values["hw.mainKeys"] != "yes" else { return false }
+        values["hw.mainKeys"] = "yes"
+        let body = values.keys.sorted().map { "\($0)=\(values[$0]!)" }.joined(separator: "\n") + "\n"
+        try body.write(to: configURL, atomically: true, encoding: .utf8)
+        return true
+    }
+
     /// 只改分辨率相关的几行，其余键原样保留。
     public func updateProfile(named name: String, to profile: DeviceProfile) throws {
         let configURL = configINIURL(named: name)

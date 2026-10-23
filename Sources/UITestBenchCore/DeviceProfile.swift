@@ -19,4 +19,16 @@ public struct DeviceProfile: Equatable, Sendable {
     public static let large = DeviceProfile(name: "大屏", width: 1440, height: 3120, density: 560)
 
     public static let presets: [DeviceProfile] = [compact, standard, large]
+
+    /// 与哪个预设的屏幕规格一致；自定义分辨率返回 nil。
+    ///
+    /// 只比宽高和密度，不比名字：旧版本写进 `config.ini` 的 `avd.profile.name`
+    /// 可能是「主流」之外的叫法，但屏幕规格仍然是同一个预设。
+    public static func presetIndex(matching profile: DeviceProfile) -> Int? {
+        presets.firstIndex {
+            $0.width == profile.width
+                && $0.height == profile.height
+                && $0.density == profile.density
+        }
+    }
 }
