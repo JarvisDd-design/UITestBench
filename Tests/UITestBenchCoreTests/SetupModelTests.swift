@@ -182,6 +182,29 @@ final class SetupModelTests: XCTestCase {
         )
     }
 
+    func testCancellingWhileManifestLoadsReturnsToIdle() async {
+        let started = expectation(description: "清单请求已发出")
+        HangingURLProtocol.reset()
+        HangingURLProtocol.onStart = { started.fulfill() }
+        defer { HangingURLProtocol.reset() }
+
+        let sessionConfiguration = URLSessionConfiguration.ephemeral
+        sessionConfiguration.protocolClasses = [HangingURLProtocol.self]
+        let model = SetupModel(
+            paths: AppPaths(supportDirectory: support),
+            configuration: configuration,
+            downloader: FileDownloader(configuration: sessionConfiguration),
+            session: URLSession(configuration: sessionConfiguration)
+        )
+
+        model.start()
+        await fulfillment(of: [started], timeout: 2)
+        model.cancel()
+        await model.waitForCompletion()
+
+        XCTAssertEqual(model.phase, .idle, "用户取消不该显示成失败：\(model.phase)")
+    }
+
     func testMarkReadyIfInstalledDetectsCompleteEnvironment() throws {
         let model = makeModel()
         XCTAssertFalse(model.markReadyIfInstalled())

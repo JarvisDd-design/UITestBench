@@ -7,8 +7,12 @@ struct SetupScreen: View {
 
     @Environment(\.benchPalette) private var palette
     @State private var showsMirrorSettings = false
-    @State private var repositoryURLText = SdkBootstrapConfiguration.default.repositoryURL.absoluteString
-    @State private var systemImageURLText = SdkBootstrapConfiguration.default.systemImageRepositoryURL.absoluteString
+    @State private var repositoryURLText = ""
+    @State private var systemImageURLText = ""
+    /// 应用镜像设置后 `configuration` 不是 @Published，用本地副本刷新「当前生效」两行。
+    @State private var effectiveConfiguration: SdkBootstrapConfiguration?
+    /// 记住上次来源：离线导入失败后点「重试」仍走离线包，不会静默改走网络。
+    @State private var lastOfflineFolder: URL?
 
     var body: some View {
         ScrollView {
@@ -17,6 +21,7 @@ struct SetupScreen: View {
                     Image(systemName: "shippingbox")
                         .font(.system(size: 34, weight: .light))
                         .foregroundStyle(palette.limeInk)
+                        .accessibilityHidden(true)
                     Text("准备 Android 环境")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(palette.textPrimary)
@@ -34,15 +39,12 @@ struct SetupScreen: View {
 
                 if let fraction = model.progressFraction {
                     ProgressView(value: fraction)
-                        .tint(palette.lime)
+                        .tint(palette.limeInk)
+                        .accessibilityLabel("安装进度")
                 }
 
-                Text(model.statusText)
-                    .font(.caption)
-                    .foregroundStyle(palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
                 if case let .failed(message) = model.phase {
+                    // 失败时不再显示 statusText（内容是同一条错误），只留红色这行，省出约 39pt。
                     Text(message)
                         .font(.caption)
                         .foregroundStyle(palette.error)
@@ -50,15 +52,23 @@ struct SetupScreen: View {
                     Text("详细日志在「诊断」抽屉里。")
                         .font(.caption2)
                         .foregroundStyle(palette.textTertiary)
+                } else {
+                    Text(model.statusText)
+                        .font(.caption)
+                        .foregroundStyle(palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Button(primaryTitle) { model.start() }
-                        .buttonStyle(BenchPrimaryButtonStyle(height: 36))
-                        .disabled(model.isRunning)
+                    if model.phase != .ready {
+                        Button(primaryTitle) { model.start(offlineFolder: lastOfflineFolder) }
+                            .buttonStyle(BenchPrimaryButtonStyle(height: 36))
+                            .disabled(model.isRunning)
+                            .keyboardShortcut(.defaultAction)
+                    }
 
                     if model.isRunning {
-                        Button("取消下载") { model.cancel() }
+                        Button("取消") { model.cancel() }
                             .buttonStyle(BenchSecondaryButtonStyle(height: 32))
                     }
 
@@ -67,41 +77,74 @@ struct SetupScreen: View {
                         .disabled(model.isRunning)
                 }
 
-                DisclosureGroup("镜像设置", isExpanded: $showsMirrorSettings) {
+                DisclosureGroup(isExpanded: $showsMirrorSettings) {
                     VStack(alignment: .leading, spacing: 8) {
+                        Text("当前组件清单：\(displayHost(shownConfiguration.repositoryURL))")
+                            .font(.system(size: 11))
+                            .foregroundStyle(palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("当前系统镜像清单：\(displayHost(shownConfiguration.systemImageRepositoryURL))")
+                            .font(.system(size: 11))
+                            .foregroundStyle(palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         Text("组件清单地址")
                             .font(.caption2)
                             .foregroundStyle(palette.textSecondary)
                         TextField("repository2-3.xml", text: $repositoryURLText)
                             .textFieldStyle(.roundedBorder)
+                            .disabled(model.isRunning)
+                            .accessibilityLabel("组件清单地址")
 
                         Text("系统镜像清单地址")
                             .font(.caption2)
                             .foregroundStyle(palette.textSecondary)
                         TextField("sys-img2-3.xml", text: $systemImageURLText)
                             .textFieldStyle(.roundedBorder)
+                            .disabled(model.isRunning)
+                            .accessibilityLabel("系统镜像清单地址")
 
                         Button("应用") { applyMirrorSettings() }
                             .buttonStyle(BenchSecondaryButtonStyle(height: 28))
-                            .disabled(!hasValidMirrorURLs)
+                            .disabled(!hasValidMirrorURLs || model.isRunning)
 
-                        Text("默认走 Google 官方源；换镜像只需替换这两个清单地址。")
-                            .font(.caption2)
-                            .foregroundStyle(palette.textTertiary)
+                        if model.isRunning {
+                            Text("运行中修改会在下次开始准备时生效")
+                                .font(.system(size: 11))
+                                .foregroundStyle(palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("默认走 Google 官方源；换镜像只需替换这两个清单地址。")
+                                .font(.caption2)
+                                .foregroundStyle(palette.textTertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .padding(.top, 6)
+                } label: {
+                    Text("镜像设置")
+                        .font(.caption)
+                        .foregroundStyle(palette.textPrimary)
                 }
-                .font(.caption)
-                .foregroundStyle(palette.textPrimary)
             }
             .padding(20)
         }
+        .background(palette.canvas)
+        .onAppear(perform: loadConfiguration)
     }
 
     private enum StepState {
         case pending
         case active
         case done
+
+        var accessibilityDescription: String {
+            switch self {
+            case .pending: return "等待"
+            case .active: return "进行中"
+            case .done: return "已完成"
+            }
+        }
     }
 
     private var steps: [(title: String, state: StepState)] {
@@ -129,6 +172,8 @@ struct SetupScreen: View {
                 ProgressView().controlSize(.small)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title)，\(state.accessibilityDescription)")
     }
 
     private var primaryTitle: String {
@@ -136,27 +181,48 @@ struct SetupScreen: View {
         return "开始准备"
     }
 
+    private var shownConfiguration: SdkBootstrapConfiguration {
+        effectiveConfiguration ?? model.configuration
+    }
+
     private var hasValidMirrorURLs: Bool {
-        guard let repository = URL(string: repositoryURLText),
-              let systemImage = URL(string: systemImageURLText)
-        else { return false }
-        return repository.scheme?.hasPrefix("http") == true
-            && systemImage.scheme?.hasPrefix("http") == true
+        MirrorSettingsValidation.endpoints(
+            repository: repositoryURLText,
+            systemImage: systemImageURLText
+        ) != nil
+    }
+
+    private func displayHost(_ url: URL) -> String {
+        url.host ?? url.absoluteString
+    }
+
+    private func loadConfiguration() {
+        // 只同步一次，避免重新出现时覆盖用户正在编辑的输入。
+        guard effectiveConfiguration == nil else { return }
+        let configuration = model.configuration
+        effectiveConfiguration = configuration
+        repositoryURLText = configuration.repositoryURL.absoluteString
+        systemImageURLText = configuration.systemImageRepositoryURL.absoluteString
     }
 
     private func applyMirrorSettings() {
-        guard let repository = URL(string: repositoryURLText),
-              let systemImage = URL(string: systemImageURLText)
-        else { return }
+        guard let endpoints = MirrorSettingsValidation.endpoints(
+            repository: repositoryURLText,
+            systemImage: systemImageURLText
+        ) else { return }
 
-        let current = model.configuration
-        model.configuration = SdkBootstrapConfiguration(
-            repositoryURL: repository,
-            systemImageRepositoryURL: systemImage,
+        let current = shownConfiguration
+        let updated = SdkBootstrapConfiguration(
+            repositoryURL: endpoints.repository,
+            systemImageRepositoryURL: endpoints.systemImage,
             systemImagePackagePath: current.systemImagePackagePath,
             hostOS: current.hostOS,
             hostArch: current.hostArch
         )
+        model.configuration = updated
+        effectiveConfiguration = updated
+        repositoryURLText = endpoints.repository.absoluteString
+        systemImageURLText = endpoints.systemImage.absoluteString
         showsMirrorSettings = false
     }
 
@@ -168,6 +234,7 @@ struct SetupScreen: View {
         panel.prompt = "导入"
         panel.message = "选择存放平台工具、模拟器和系统镜像压缩包的文件夹"
         guard panel.runModal() == .OK, let folder = panel.url else { return }
+        lastOfflineFolder = folder
         model.start(offlineFolder: folder)
     }
 }

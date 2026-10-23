@@ -159,8 +159,11 @@ public final class SetupModel: ObservableObject {
             phase = .ready
         } catch is CancellationError {
             phase = .idle
+        } catch let error as URLError where error.code == .cancelled {
+            // 拉清单时 URLSession 把取消报成 URLError(.cancelled)，不是 CancellationError。
+            phase = .idle
         } catch {
-            phase = .failed(SetupErrorText.text(for: error))
+            phase = Task.isCancelled ? .idle : .failed(SetupErrorText.text(for: error))
         }
     }
 
