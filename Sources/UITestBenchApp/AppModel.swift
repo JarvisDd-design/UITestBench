@@ -76,6 +76,49 @@ final class AppModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    private var backKeyMonitor: Any?
+
+    /// 应用级 ⌘[：手机、坞、抽屉、底胶囊是 key 时都能发返回；
+    /// 输入框编辑和 sheet / 模态上不抢键。判定规则在 Core 的
+    /// `DeviceBackShortcutPolicy` 里单测，这里只负责把 NSEvent 递进去。
+    func startBackKeyMonitor() {
+        guard backKeyMonitor == nil else { return }
+        backKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.mirror.canSendInput else { return event }
+
+            let modifiers = KeyboardInput.Modifiers(event: event)
+            let action = KeyboardInput.action(
+                // ⌘[ 用 charactersIgnoringModifiers 判定，避免中文输入法
+                // 或大写锁定改变字符；Shift 已单独记在 modifiers 里。
+                for: event.charactersIgnoringModifiers ?? event.characters ?? "",
+                modifiers: modifiers
+            )
+            let decision = DeviceBackShortcutPolicy.decision(
+                action: action,
+                modifiers: modifiers,
+                isEditingText: event.window?.firstResponder is NSTextView,
+                target: self.window.clickTarget(for: event.window)
+            )
+            guard decision == .send else { return event }
+
+            self.sendBackKey()
+            return nil
+        }
+    }
+
+    func sendBackKey() {
+        mirror.pressKey(.back)
+    }
+
+    /// 点底胶囊的返回图标后，把键盘焦点还给手机画面；
+    /// 下一次 ⌘[ 或直接敲键盘都不用再点一次手机。
+    func backButtonPressed() {
+        sendBackKey()
+        guard let phone = window.phoneWindow, phone.isVisible else { return }
+        phone.makeKey()
+        _ = phone.makeFirstResponder(mirror.display)
+    }
+
     /// 底胶囊该显示什么，由手机窗口和胶囊面板共用，避免两处各算一遍。
     var actionCapsuleState: ActionCapsuleState {
         ActionCapsuleResolver.resolve(

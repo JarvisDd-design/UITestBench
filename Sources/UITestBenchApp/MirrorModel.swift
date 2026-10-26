@@ -8,6 +8,9 @@ import UITestBenchCore
 @MainActor
 final class MirrorModel: ObservableObject {
     @Published private(set) var state: MirrorState = .idle
+    /// 控制通道是否真的可用。画面在、输入通道单独失败时也必须为 false，
+    /// 否则底胶囊的返回按钮看起来能点，实际什么都不会发生。
+    @Published private(set) var canSendInput = false
 
     let display = MirrorDisplayView()
 
@@ -90,15 +93,23 @@ final class MirrorModel: ObservableObject {
             )
             inputController = controller
             display.inputController = controller
+            canSendInput = true
         } catch {
             inputController = nil
             display.inputController = nil
+            canSendInput = false
         }
+    }
+
+    /// 设备按键：底胶囊的返回按钮和 ⌘[ 都走这里。
+    func pressKey(_ key: AndroidKey) {
+        inputController?.pressKey(key)
     }
 
     func stop() {
         inputController = nil
         display.inputController = nil
+        canSendInput = false
         session = nil
         guard let engine else {
             state = .idle
@@ -219,7 +230,7 @@ final class MirrorDisplayView: NSView {
         // 翻译规则在 KeyboardInput 里单测；这里只负责把 NSEvent 拆成字符和修饰键。
         guard let action = KeyboardInput.action(
             for: event.characters ?? "",
-            modifiers: Self.keyboardModifiers(for: event)
+            modifiers: KeyboardInput.Modifiers(event: event)
         ) else {
             // Tab、⌘ 系列、方向键等交给 AppKit，保持 Mac 上应有的行为。
             super.keyDown(with: event)
@@ -238,14 +249,6 @@ final class MirrorDisplayView: NSView {
             }
             return
         }
-    }
-
-    private static func keyboardModifiers(for event: NSEvent) -> KeyboardInput.Modifiers {
-        var modifiers: KeyboardInput.Modifiers = []
-        if event.modifierFlags.contains(.command) { modifiers.insert(.command) }
-        if event.modifierFlags.contains(.control) { modifiers.insert(.control) }
-        if event.modifierFlags.contains(.option) { modifiers.insert(.option) }
-        return modifiers
     }
 
     private func syncViewSize() {
@@ -274,4 +277,17 @@ struct VideoSurface: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: MirrorDisplayView, context: Context) {}
+}
+
+extension KeyboardInput.Modifiers {
+    /// 把 NSEvent 的修饰键转成翻译层用的集合。Shift 也记下来，
+    /// 只用来区分 ⌘⇧[ 这类组合；文字大小写仍由 `characters` 决定。
+    init(event: NSEvent) {
+        var modifiers: KeyboardInput.Modifiers = []
+        if event.modifierFlags.contains(.command) { modifiers.insert(.command) }
+        if event.modifierFlags.contains(.control) { modifiers.insert(.control) }
+        if event.modifierFlags.contains(.option) { modifiers.insert(.option) }
+        if event.modifierFlags.contains(.shift) { modifiers.insert(.shift) }
+        self = modifiers
+    }
 }

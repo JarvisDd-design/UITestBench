@@ -82,6 +82,7 @@ struct PhoneWindowView: View {
             app.dock.startEventMonitors { [weak app] window in
                 app?.window.clickTarget(for: window) ?? .auxiliary
             }
+            app.startBackKeyMonitor()
 
             // 退出时先卸包、再关设备：设备关了 adb 就卸不掉了。
             ShutdownCoordinator.shared.perform = {

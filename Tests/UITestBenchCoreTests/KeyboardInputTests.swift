@@ -53,6 +53,69 @@ final class KeyboardInputTests: XCTestCase {
         XCTAssertNil(action("\u{1B}", .control))
     }
 
+    /// ⌘[ 是 macOS 的「后退」，映射为设备返回键。
+    func testCommandLeftBracketPressesBack() {
+        XCTAssertEqual(action("[", .command), .key(.back))
+    }
+
+    /// ⌘⇧[ 不能被当成 ⌘[；监视器用 charactersIgnoringModifiers 时尤其要区分。
+    func testCommandShiftLeftBracketIsNotBack() {
+        XCTAssertNil(action("[", [.command, .shift]))
+    }
+
+    /// Shift 单独按不影响文字：大小写已经体现在字符本身。
+    func testShiftAloneStillTypesText() {
+        XCTAssertEqual(action("A", .shift), .text("A"))
+    }
+
+    private func decision(
+        action: KeyboardAction? = .key(.back),
+        modifiers: KeyboardInput.Modifiers = .command,
+        isEditingText: Bool = false,
+        target: DockClickTarget = .phone
+    ) -> DeviceBackShortcutDecision {
+        DeviceBackShortcutPolicy.decision(
+            action: action,
+            modifiers: modifiers,
+            isEditingText: isEditingText,
+            target: target
+        )
+    }
+
+    /// 手机窗口、坞、抽屉、底胶囊都能触发；底胶囊属于 auxiliary。
+    func testBackShortcutSendsFromPhoneAndCapsule() {
+        XCTAssertEqual(decision(target: .phone), .send)
+        XCTAssertEqual(decision(target: .dock), .send)
+        XCTAssertEqual(decision(target: .drawer), .send)
+        XCTAssertEqual(decision(target: .auxiliary), .send)
+    }
+
+    /// 在输入框里按 ⌘[ 不能偷偷给设备发返回。
+    func testBackShortcutIsIgnoredWhileEditingText() {
+        XCTAssertEqual(decision(isEditingText: true), .ignore)
+    }
+
+    /// sheet / 模态上的 ⌘[ 留给 Mac 自己。
+    func testBackShortcutIsIgnoredOnSheetsAndModals() {
+        XCTAssertEqual(decision(target: .sheet), .ignore)
+        XCTAssertEqual(decision(target: .modal), .ignore)
+    }
+
+    /// 只认 ⌘[：多一个修饰键都不是返回。
+    func testBackShortcutRequiresExactCommandModifier() {
+        XCTAssertEqual(decision(modifiers: [.command, .shift]), .ignore)
+        XCTAssertEqual(decision(modifiers: [.command, .option]), .ignore)
+        XCTAssertEqual(decision(modifiers: [.control]), .ignore)
+        XCTAssertEqual(decision(modifiers: []), .ignore)
+    }
+
+    /// Home、文字、没翻译出来的键都不归这个快捷键管。
+    func testOtherKeysAreNotBackShortcut() {
+        XCTAssertEqual(decision(action: .key(.home)), .ignore)
+        XCTAssertEqual(decision(action: .text("a")), .ignore)
+        XCTAssertEqual(decision(action: nil), .ignore)
+    }
+
     /// 控制通道只送 ASCII：中文没有对应的按键事件，服务端也注入不进去。
     func testNonASCIIIsIgnored() {
         XCTAssertNil(action("中"))

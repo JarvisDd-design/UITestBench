@@ -24,6 +24,8 @@ public enum KeyboardInput {
         public static let command = Modifiers(rawValue: 1 << 0)
         public static let control = Modifiers(rawValue: 1 << 1)
         public static let option = Modifiers(rawValue: 1 << 2)
+        /// Shift 不参与文字翻译（`A` 就是 `A`），只用来区分 ⌘⇧[ 这类组合。
+        public static let shift = Modifiers(rawValue: 1 << 3)
 
         /// 这些组合是 Mac 自己的快捷方式，不能漏给设备。
         public static let shortcuts: Modifiers = [.command, .control, .option]
@@ -32,6 +34,12 @@ public enum KeyboardInput {
     /// 返回 nil 表示这条按键不归设备管，交给 AppKit 继续处理（Tab 切焦点、
     /// ⌘ 系列快捷键等）。
     public static func action(for characters: String, modifiers: Modifiers) -> KeyboardAction? {
+        // ⌘[ 是 macOS 的「后退」。只认精确的 ⌘，⌘⇧[ 不映射，
+        // 否则监视器用 charactersIgnoringModifiers 时会把两个组合混在一起。
+        if characters == "[", modifiers == .command {
+            return .key(.back)
+        }
+
         guard !characters.isEmpty, modifiers.intersection(.shortcuts).isEmpty else {
             return nil
         }
@@ -52,5 +60,37 @@ public enum KeyboardInput {
             return nil
         }
         return .text(characters)
+    }
+}
+
+/// 应用级 ⌘[ 是否应该转成设备返回键。
+public enum DeviceBackShortcutDecision: Equatable, Sendable {
+    case send
+    case ignore
+}
+
+/// 判断一个已经翻译过的按键该不该由应用级监视器接管。
+///
+/// 和 `KeyboardInput.action` 分开：翻译只管「字符 → 设备动作」，
+/// 这里再决定「这个动作在当前窗口 / 编辑状态下要不要发」。
+public enum DeviceBackShortcutPolicy {
+    public static func decision(
+        action: KeyboardAction?,
+        modifiers: KeyboardInput.Modifiers,
+        isEditingText: Bool,
+        target: DockClickTarget
+    ) -> DeviceBackShortcutDecision {
+        guard action == .key(.back), modifiers == .command else {
+            return .ignore
+        }
+        guard !isEditingText else {
+            return .ignore
+        }
+        switch target {
+        case .sheet, .modal:
+            return .ignore
+        case .phone, .dock, .drawer, .auxiliary:
+            return .send
+        }
     }
 }

@@ -14,7 +14,9 @@ struct CapsulePanelView: View {
             onRun: { app.runCurrentAPK() },
             onResume: { app.resumeCurrentAPK() },
             onRestartClearing: { app.restartClearingCurrentAPK() },
-            onReinstall: { app.reinstallCurrentAPK() }
+            onReinstall: { app.reinstallCurrentAPK() },
+            canSendBack: app.mirror.canSendInput,
+            onBack: { app.backButtonPressed() }
         )
         .padding(FloatingPanelsController.shadowPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -24,6 +24,8 @@ struct BenchSecondaryButtonStyle: ButtonStyle {
     @Environment(\.benchPalette) private var palette
     @Environment(\.isEnabled) private var isEnabled
     var height: CGFloat = 34
+    /// 底胶囊里空间紧，图标按钮和运行态按钮可以收窄；默认值保持原样。
+    var horizontalPadding: CGFloat = 14
 
     func makeBody(configuration: Configuration) -> some View {
         // 用不透明底色，别指望半透明 surface：最终窗口是透明的，
@@ -34,7 +36,7 @@ struct BenchSecondaryButtonStyle: ButtonStyle {
         return configuration.label
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(palette.textPrimary.opacity(isEnabled ? 1 : 0.4))
-            .padding(.horizontal, 14)
+            .padding(.horizontal, horizontalPadding)
             .frame(height: height)
             .background(Capsule().fill(fill))
             .overlay(
