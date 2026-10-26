@@ -20,7 +20,7 @@
 | APK 解析 | 包名、应用名、版本、minSdk / targetSdk、ABI、启动 Activity；架构 / API / 拆分包等兼容性预检，中文解释 |
 | 运行 | 安装、启动、清数据重开、保留数据重开、完全重装、停止 |
 | 画面 | 自实现 scrcpy 协议，内嵌实时画面；屏幕录制权限只在扫码时申请，且只读取取景框区域、只在内存中识别 |
-| 输入 | 点击、拖拽、滚轮、ASCII 键盘输入 |
+| 输入 | 点击、拖拽、滚轮、ASCII 键盘输入；返回键（运行后底胶囊的返回图标，或 ⌘[） |
 | 截图标注 | 冻结画面，矩形 / 箭头 / 文字 / 画笔 / 颜色 / 撤销重做；保存 PNG 或复制到剪贴板 |
 | 设备 ID | 读取应用实际看到的 Android ID；显示后台常用的 32 位 MD5；团队统一设备 ID（见 [docs/device-id.md](docs/device-id.md)） |
 | 清理 | 退出时卸载被测应用、清数据、删临时 APK；强杀后下次启动自检清理 |
@@ -74,7 +74,7 @@ Project/                   XcodeGen 生成的 Info.plist 等
 Scripts/package.sh         构建 .dmg
 docs/                      架构、设备 ID、验收说明
 docs/history/              早期原型方案（历史，不代表现状）
-docs/superpowers/plans/    主窗口改版计划与执行实测（随 1.4.0 发布）
+docs/superpowers/plans/    1.3.0 与 1.4.0 的主窗口改版计划（1.4.0 为当前形态）
 ```
 
 工具自己的数据都在 `~/Library/Application Support/UI验收台/`：`sdk/`、`avd/`、`tmp/`、`logs/`。用户选中的原始 APK 与导出的截图不在清理范围内。
@@ -91,7 +91,7 @@ docs/superpowers/plans/    主窗口改版计划与执行实测（随 1.4.0 发�
 - 只支持带 `arm64-v8a` 原生库的包；只有 `armeabi-v7a` 的包装不上。纯 Java/Kotlin 包不受影响。
 - 模拟器不是真机：风控、Play Integrity、DRM、推送、相机、NFC 等行为可能不同。
 - 中文输入不支持：控制通道只支持 ASCII，AOSP 镜像也没有中文输入法。
-- 1.3.0 起界面不再提供返回 / Home / 最近任务按钮及其快捷键；删除键和 Esc 也不再映射成返回，由模拟器内的导航栏或手势完成。
+- Home / 最近任务不提供；返回只在应用运行后由底胶囊的返回图标或 ⌘[ 触发。删除键和 Esc 仍不映射成返回（Esc 留给收起抽屉，删除键留给输入框退格）。
 - 没有 OAID；IMEI 为空。只认 OAID 的白名单需要开发改用 Android ID。
 - 团队统一设备 ID 会让所有人共享同一份「按设备保存」的应用状态，而不只是共享白名单。
 - macOS 12.3 尚未在真实 macOS 12.3 机器上验收；代码只用了 12.3 可用的 API。

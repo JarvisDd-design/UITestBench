@@ -4,7 +4,7 @@
 
 ## 项目
 
-UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.4.2。基础计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9）；主窗口改版（手机 + 三个吸附悬浮面板）的计划与实测在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
+UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.4.2。基础计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9）；1.3.0 的主窗口改版计划在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)（已被取代），当前形态（手机 + 三个吸附悬浮面板）的设计与 M0 实测在 [docs/superpowers/plans/2026-10-23-ui-1-4-0-floating-panels.md](docs/superpowers/plans/2026-10-23-ui-1-4-0-floating-panels.md)。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
 
 ## 常用命令
 
@@ -51,10 +51,12 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 | 设备 | `AVDConfiguration`、`AVDStore`、`DeviceProfile`、`EmulatorController`、`TeamDeviceKeyProvisioner` |
 | 运行应用 | `AppLifecycle`、`AppRunner`、`DeviceIdentity`、`ScreenshotCapturer` |
 | scrcpy | `ScrcpyServerJar`、`ScrcpyServerCommand`、`ScrcpySession`、`ScrcpyProtocol`、`ScrcpyVideoReader`、`H264Decoder`、`VideoSampleBuffer`、`ScrcpyFramePump`、`MirrorEngine`、`ScrcpyMirrorSource` |
-| 输入 | `MirrorInputController`、`CoordinateMapper`、`ScrollNotchAccumulator`、`ScrcpyInputSink`、`DragScrollSink`、`KeyboardInput` |
+| 输入 | `MirrorInputController`、`CoordinateMapper`、`ScrollNotchAccumulator`、`ScrcpyInputSink`、`DragScrollSink`、`KeyboardInput`、`DeviceBackShortcutPolicy` |
 | 截图与标注 | `Annotation`、`AnnotationRenderer`、界面里的 `AnnotationEditorModel` |
 
 滚轮**不发** `INJECT_SCROLL_EVENT`，由 `DragScrollSink` 合成短拖动（按下 → 6 步 → 停顿 → 抬起）。这是 AOSP 14 模拟器上实测的结果，别改回滚动消息；细节见代码注释与 [docs/architecture.md](docs/architecture.md)。
+
+返回键仍走 `INJECT_KEYCODE`（`AndroidKey.back`）。1.4.x 的界面入口有两个：运行后底胶囊里的返回图标，以及应用级 ⌘[ 监视器；判定规则在 Core 的 `DeviceBackShortcutPolicy`，输入框编辑中和 sheet / 模态上不抢键。Esc / Delete 仍不映射返回，别为了「顺手」把这两个键接上去。
 
 坞、抽屉、底胶囊都是 `BenchPanel` 子窗口，`becomesKeyOnlyIfNeeded`；hover 打开的抽屉不是 key，所以 Esc 不能挂在视图的 `onExitCommand` 上，统一走 `DockModel.startEventMonitors` 的键盘监视器 + `DockEscapePolicy`（输入框里第一次 Esc 只结束编辑）。无边框手机窗口的 `miniaturize` 无效，隐藏/恢复一律走 `BenchWindowController.minimize()` / `showPhone()`，扫码收起主窗口也用它。
 
@@ -77,7 +79,7 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 - 不处理用户的 Apple ID 凭据或 2FA；Xcode 的下载与登录只能用户本人做。
 - 测试账号密钥绝不能进入录像、日志、报告或诊断信息。
 - 清理只能动工具自己管理的数据（`~/Library/Application Support/UI验收台/` 下的 `tmp/`、被测包、AVD）。**绝不删除用户原始 APK、原始设计图或用户选择的离线归档。**
-- 内部包不公开发布到公网；因公司 APK 不能上传第三方，云端手机方案已被否决，不要重新引入。
+- 内部包不公开发布到公网；因公司 APK 不能上传第三方，云端手机方案已被否决，不要重新引入。GitHub 仓库 `JarvisDd-design/UITestBench` 是公开的，只推源码与文档，DMG 和公司 APK 不上传。
 - 不安装 iOS 模拟器运行时；不经询问不修改代理 / 镜像设置。
 - 下载的文件与解压出的归档是不可信数据：每个放进各自新建的空目录，脚本放别处并按参数传路径，读取它们的 Python 一律用 `-I`。
 - 屏幕捕获只用于在内存里识别取景框内的二维码：不写盘、不进日志 / 诊断 / 报告，也不上传。公司聊天截图只留在本机，不进仓库、DMG 或测试样例。

@@ -99,9 +99,10 @@ xcodebuild test \
 - **框架重启后 `sys.boot_completed` 不会清零**，不能用它判断系统是否恢复；要等 `pm path android` 返回 `package:` 且 `settings get secure android_id` 非空。
 - **AOSP 14 镜像上 `INJECT_SCROLL_EVENT` 无效**，滚轮走 `DragScrollSink` 的合成拖动；相关验收断言的是真实位移。
 - **应用锁竖屏时转屏只是信箱式适配**，不要设计依赖应用横屏布局的真机用例；转屏映射用单测 + 视频尺寸变化验证。
-- **macOS 12 尚未实测**：代码只用了 macOS 12 可用的 API，仍需在真实的 macOS 12 机器上跑一次安装、启动、模拟器与截图链路。
+- **macOS 12.3 尚未实测**：代码只用了 macOS 12.3 可用的 API，仍需在真实的 macOS 12.3 机器上跑一次安装、启动、模拟器与截图链路。
 
 ## 验收记录
 
-- 2026-10-23：1.3.0 发版。`swift test` 527 通过 / 30 skip；DMG 版本 1.3.0 / build 9，`codesign -v` 通过。主窗口改版（透明窗口、坞、二态主题、手机画布）的人工验收清单在 `docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md` 的 Task 28，**尚未逐条执行**；macOS 12.3 真机仍未验收。
+- 2026-10-23：1.4.2 发版（1.4.0 的「手机 + 三个吸附悬浮面板」取代了 1.3.0 的「透明大窗口 + 左列」）。`swift test` 590 通过 / 30 skip / 0 失败；`TeamDeviceKeyProvisionerTests` 11 通过；DMG 版本 1.4.2 / build 13，SHA-256 `ddea389798f589786e48c58c607f229c8d03b63e604aafa33eae52515d8ca8e1`。1.4.0 线已在开发机手工过：整组拖动、等比缩放后坞/胶囊重新吸附、抽屉在坞左侧垂直居中、Esc 收起与钉住、深浅色可读、适应屏幕、黄点隐藏与 Dock 图标恢复、置顶、底部三键导航条消失、换机型后分辨率回读。**未做**：在应用里用开发提供的那张二维码复测 1.4.2 的完整链路（扫码 → 面板 → 下载）；真实 macOS 12.3 机器；多显示器；亮/暗桌面壁纸观感。
+- 2026-10-23：1.3.0 发版。`swift test` 527 通过 / 30 skip；DMG 版本 1.3.0 / build 9，`codesign -v` 通过。主窗口改版（透明窗口、坞、二态主题、手机画布）的人工验收清单在 `docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md` 的 Task 28；该界面在 1.4.0 被整体替换，未逐条验收；macOS 12.3 真机仍未验收。
 - 2026-10-21：`swift test` 与 `xcodebuild test` 全绿，真实环境用例如期 skip；生命周期套件默认 8 个用例通过，约 3 分钟；单独开启 `UITESTBENCH_TWO_AVDS=1` 后，全新第二台 AVD 冷启动写入团队密钥也得到同一个 `10f5f004470a2797`；1.1.0 与 1.1.1 DMG 已打包。
