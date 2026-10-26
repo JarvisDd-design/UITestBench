@@ -38,8 +38,8 @@ targets:
       properties:
         CFBundleDisplayName: UI验收台
         CFBundleName: UI验收台
-        CFBundleShortVersionString: "1.4.2"
-        CFBundleVersion: "13"
+        CFBundleShortVersionString: "1.4.3"
+        CFBundleVersion: "14"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHighResolutionCapable: true
         NSScreenCaptureUsageDescription: "需要读取屏幕上的取景框画面来识别二维码。画面只在本机内存中分析，不会保存或上传。"
