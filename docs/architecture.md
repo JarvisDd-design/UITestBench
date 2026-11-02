@@ -58,9 +58,16 @@ App 层没有传统的应用窗口：可见的只有手机本身。手机是无�
 5. **画面**
    `ScrcpySession` 推 jar、开端口转发、拉起服务端并完成握手；`ScrcpyVideoReader` 解析视频头与逐帧包；`ScrcpyFramePump` 调 `ScrcpyDecoder`（内部是 `H264Decoder` / VideoToolbox）把包解码成 `DecodedFrame`；`MirrorEngine` 在后台队列上循环「取一帧已解码画面 → 用 `VideoSampleBuffer` 包成 `CMSampleBuffer` → 上屏」，断流时通过 `MirrorRecoveringFrameSource.restart()` 重建会话，最多重试 3 次。
    `ScrcpyMirrorSource` 把 scrcpy 会话接到这个通用接口上；界面只认 `MirrorFrameSource`，所以降级到别的画面来源时上层不用改。
+   上屏这一段按「保延迟、宁可丢帧」设计：解码线程只把最新一帧写进深度 1 的 `MirrorFrameSlot`（`store` 覆盖旧的并记一次丢帧），`MirrorDisplayView` 在独立的喂帧队列上从槽里取帧、`enqueue` 给 `AVSampleBufferDisplayLayer`，槽空就在条件变量上等（来帧立刻醒，不空转）。
+   这条路上有三件事必须同时做对，缺一件就是「黑屏 / 画面停住 / 点哪儿都不刷新」，1.5.0 踩过两遍：
+   ① 给显示层挂一个跟主机时钟走的 `controlTimebase`（`CMTimebaseCreateWithSourceClock` + `CMClockGetHostTimeClock`），第一帧用它的 PTS `CMTimebaseSetTime` 对齐。不挂的话显示层会拿设备的 PTS 跟自己内部时钟比，帧被排到「未来」，队列越攒越长，画面停住、要切档 flush 一下才跳到当时那帧。
+   ② 喂帧**不看** `isReadyForMoreMediaData`。这个标志实测会长期报 false，跟着它走的话一帧都进不去（真机上 6 秒进不到 2 帧，画面卡成 PPT）；写成「等它点头再喂」更糟，显示层喂进 4 帧后永久不点头 = 黑屏。
+   ③ 设备时钟和主机时钟会跑偏，偏过 0.25 秒就把时间轴重新对一次（只 `CMTimebaseSetTime`，不 flush，积压的旧帧自然过期被跳过）。
+   HUD（⌥⌘L）里的「跟手」量的是「画面静止后的第一下操作 → 下一帧到达」：连续拖动时每帧都紧跟着上一条输入，算出来只会是帧间隔而不是用户等的时间，所以连续操作里的输入不计入样本。
+   画质两档由 `MirrorQualityMode` 决定，作为 `max_size` / `max_fps` / `video_bit_rate` 三个启动参数传给服务端：流畅 30fps · 长边 1280 · 4Mbps，清晰 60fps · 长边 1920 · 6Mbps。大屏机型（短边 ≥ 1440）默认流畅，切档即重连。选档的杠杆是**长边**而不是帧率：这台机器上实测把长边从 1920 降到 1280，峰值跟手从 240ms 降到 150ms；而 30 与 60fps 的差别被模拟器自身 12–15 fps 的产出上限盖住了（实测数据见 [plans/2026-11-02-mirror-latency-and-ime.md](superpowers/plans/2026-11-02-mirror-latency-and-ime.md)）。
 
 6. **输入**
-   视图坐标经 `CoordinateMapper` 换成设备坐标，`MirrorInputController` 分派给 `MirrorInputSink`。`ScrcpyInputSink` 按锁定的 scrcpy 版本写控制消息；`DragScrollSink` 把滚轮翻译成合成短拖动；`KeyboardInput` 只支持 ASCII。
+   视图坐标经 `CoordinateMapper` 换成设备坐标，`MirrorInputController` 分派给 `MirrorInputSink`。`ScrcpyInputSink` 按锁定的 scrcpy 版本写控制消息；`DragScrollSink` 把滚轮翻译成合成短拖动。键盘分流在 `KeyboardRouting`：ASCII 走 `INJECT_TEXT` 快路径，中文在 `MirrorDisplayView` 里用 `NSTextInputClient` 组字，提交后由 `setClipboardAndPaste` 写设备剪贴板并补一次 `KEYCODE_PASTE`（服务端自己不会发粘贴键）。
 
 7. **截图与标注**
    `ScreenshotCapturer` 用 `exec-out screencap -p` 拿 PNG，界面立即冻结画面；`Annotation` 是文档模型，`AnnotationRenderer` 负责把矩形 / 箭头 / 文字 / 画笔画到图上。导出必须由用户显式保存或复制。
@@ -77,6 +84,7 @@ App 层没有传统的应用窗口：可见的只有手机本身。手机是无�
 | 手写 AVD 配置，不用 `avdmanager` | `avdmanager` 需要 JDK，同事机器上没有；目录收在应用支持目录，不污染 `~/.android`。 |
 | `-gpu host`，不用 `auto` | `auto` 在 Apple 芯片上会退到 SwiftShader，帧率和输入延迟都明显变差。 |
 | 滚轮合成短拖动 | AOSP 14 镜像上 `INJECT_SCROLL_EVENT` 应用层不响应；合成拖动是唯一稳定的路径。 |
+| 丢帧优先于不丢帧 | 待显示槽深度锁死为 1，解码跟不上就覆盖旧帧。验收台的用途是「看此刻屏幕」而不是回放，积压只会让延迟越滚越长。 |
 | 改 SSAID 前先停系统框架 | SettingsProvider 内存里有旧表，不停框架直接改文件会被覆盖回去。 |
 | 团队统一 `userkey` | SSAID = HMAC(userkey, 签名证书)。固定 userkey，所有电脑对同一套证书得到同一个 ID，开发只配一次白名单。 |
 | 扫码只捕获取景框，不截全屏 | 飞书/浏览器里常同时有多个码；框内捕获既符合「对准哪个扫哪个」的直觉，也把 CPU 和隐私面压到最小。 |

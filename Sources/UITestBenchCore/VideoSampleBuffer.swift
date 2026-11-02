@@ -36,6 +36,15 @@ public enum VideoSampleBuffer {
         guard sampleStatus == noErr, let sampleBuffer else {
             throw VideoSampleBufferError.sampleBufferFailed(sampleStatus)
         }
+
+        // 不等时基：显示层收到就画。不设这个附件时，AVSampleBufferDisplayLayer 会
+        // 按 pts 排队等一个从没启动过的时钟，帧越积越多——「越用越卡」的一半原因。
+        CMSetAttachment(
+            sampleBuffer,
+            key: kCMSampleAttachmentKey_DisplayImmediately,
+            value: kCFBooleanTrue,
+            attachmentMode: kCMAttachmentMode_ShouldPropagate
+        )
         return sampleBuffer
     }
 }

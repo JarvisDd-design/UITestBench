@@ -11,6 +11,9 @@
 | `APK_SAMPLE` | 样本 APK 的路径；仓库不附带 |
 | `UITESTBENCH_TWO_AVDS=1` | 允许停掉主 AVD、另建一台全新的第二设备，跑跨设备用例 |
 | `UITESTBENCH_KEEP_RUNNING=1` | 调试用：让「停止后立刻重启」用例在停止后不再启动，方便手工检查（该用例会因此失败） |
+| `UITESTBENCH_LATENCY_ACCEPTANCE=1` | 打开延迟冒烟（`MirrorLatencyAcceptanceTests`），需要一台**已开机**的模拟器 |
+| `UITESTBENCH_SERIAL` | 延迟冒烟连哪台设备，默认 `emulator-5554` |
+| `UITESTBENCH_LATENCY_TARGET_P95_MS` | 帧间隔绝对门槛。**默认不断言**：本机模拟器合成 / 编码只有 12–15 fps，33ms 永远达不到；换真机时传 `33` 恢复强断言 |
 
 示例（把 `APK_SAMPLE` 换成本机实际的样本路径）：
 
@@ -75,6 +78,7 @@ swift test --filter testAFreshDeviceGetsTheSameTeamDeviceID
 | `RealApkAcceptanceTests` | `APK_SAMPLE` | 用真实 APK 验收解析 |
 | `RealArchiveAcceptanceTests` | `APK_SAMPLE`、`PLATFORM_TOOLS_ZIP` | 真实归档解压 |
 | `RealSdkRepositoryAcceptanceTests` | `SDK_REPO_DIR` | Google 清单解析，只断言结构不变量 |
+| `MirrorLatencyAcceptanceTests` | `UITESTBENCH_LATENCY_ACCEPTANCE=1` | 连跑 60 秒，看帧间隔会不会崩、越跑越慢；绝对阈值需显式给 `UITESTBENCH_LATENCY_TARGET_P95_MS` |
 
 ## Xcode 工程
 
@@ -102,6 +106,8 @@ xcodebuild test \
 - **macOS 12.3 尚未实测**：代码只用了 macOS 12.3 可用的 API，仍需在真实的 macOS 12.3 机器上跑一次安装、启动、模拟器与截图链路。
 
 ## 验收记录
+
+- 2026-11-02：1.5.0 发版（镜像丢帧槽、显示时基、画质档位、中文输入）。`swift test --disable-sandbox` 649 通过 / 31 skip / 0 失败。这台开发机的基线：模拟器「合成 + 编码」本身只有 12–15 fps（`adb shell screenrecord` 6.6 秒也只有 81 帧），客户端解码 2.27ms / p95 3.29ms、等包 96ms ——所以 D2 的「帧间隔 p95 ≤ 33ms」在本机不可能达成，延迟用例改成断言「不漂移」。HUD（⌥⌘L）实测：清晰档峰值跟手 240ms、流畅档 150ms，内容轻的系统设置页 20–50ms（该组是不同页面，不能横比）。**未做**：真机上的延迟验收、10 分钟漂移长测、真实 macOS 12.3 机器。
 
 - 2026-10-23：1.4.2 发版（1.4.0 的「手机 + 三个吸附悬浮面板」取代了 1.3.0 的「透明大窗口 + 左列」）。`swift test` 590 通过 / 30 skip / 0 失败；`TeamDeviceKeyProvisionerTests` 11 通过；DMG 版本 1.4.2 / build 13，SHA-256 `ddea389798f589786e48c58c607f229c8d03b63e604aafa33eae52515d8ca8e1`。1.4.0 线已在开发机手工过：整组拖动、等比缩放后坞/胶囊重新吸附、抽屉在坞左侧垂直居中、Esc 收起与钉住、深浅色可读、适应屏幕、黄点隐藏与 Dock 图标恢复、置顶、底部三键导航条消失、换机型后分辨率回读。**未做**：在应用里用开发提供的那张二维码复测 1.4.2 的完整链路（扫码 → 面板 → 下载）；真实 macOS 12.3 机器；多显示器；亮/暗桌面壁纸观感。
 - 2026-10-23：1.3.0 发版。`swift test` 527 通过 / 30 skip；DMG 版本 1.3.0 / build 9，`codesign -v` 通过。主窗口改版（透明窗口、坞、二态主题、手机画布）的人工验收清单在 `docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md` 的 Task 28；该界面在 1.4.0 被整体替换，未逐条验收；macOS 12.3 真机仍未验收。

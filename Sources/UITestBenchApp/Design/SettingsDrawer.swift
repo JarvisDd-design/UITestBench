@@ -4,12 +4,35 @@ import UITestBenchCore
 struct SettingsDrawer: View {
     @ObservedObject var theme: ThemeStore
     @ObservedObject var window: BenchWindowController
+    /// 画面档位由 AppModel 决定（跟着机型默认走），这里只负责显示和回调。
+    let quality: MirrorQualityMode
+    let onQualityChange: (MirrorQualityMode) -> Void
 
     @Environment(\.benchPalette) private var palette
     @State private var showsAbout = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 8) {
+                sectionTitle("画面")
+                Picker(
+                    "画质",
+                    selection: Binding(
+                        get: { quality },
+                        set: { onQualityChange($0) }
+                    )
+                ) {
+                    ForEach(MirrorQualityMode.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                Text(quality.detail)
+                    .font(.caption2)
+                    .foregroundStyle(palette.textTertiary)
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 sectionTitle("外观")
                 Picker(

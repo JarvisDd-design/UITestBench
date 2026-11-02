@@ -26,7 +26,8 @@ public enum ScrcpyServerCommand {
     public static func shellArguments(
         scid: UInt32,
         maxSize: Int? = nil,
-        maxFPS: Int? = nil
+        maxFPS: Int? = nil,
+        videoBitRate: Int? = nil
     ) -> [String] {
         var arguments = [
             "shell",
@@ -51,6 +52,11 @@ public enum ScrcpyServerCommand {
         }
         if let maxFPS {
             arguments.append("max_fps=\(maxFPS)")
+        }
+        // 编码码率是延迟的主因：大屏机型 8Mbps 时模拟器软编码跟不上，
+        // 编码器排队，画面就越来越滞后。档位把它降到 4Mbps。
+        if let videoBitRate {
+            arguments.append("video_bit_rate=\(videoBitRate)")
         }
         return arguments
     }

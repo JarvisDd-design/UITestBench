@@ -137,7 +137,12 @@ struct DockDrawer: View {
         case .diagnostics:
             DiagnosticsDrawer(paths: app.paths, device: app.device)
         case .settings:
-            SettingsDrawer(theme: app.theme, window: app.window)
+            SettingsDrawer(
+                theme: app.theme,
+                window: app.window,
+                quality: app.mirrorQuality,
+                onQualityChange: { app.setMirrorQuality($0) }
+            )
         }
     }
 }

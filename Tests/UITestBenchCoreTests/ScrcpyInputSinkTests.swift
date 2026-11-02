@@ -11,11 +11,17 @@ final class ScrcpyInputSinkTests: XCTestCase {
         sink = ScrcpyInputSink(stream: stream)
     }
 
+    /// 控制通道的写入在串行队列上异步进行；断言之前先把它排空。
+    private var records: [Data] {
+        sink.flushPendingWrites()
+        return stream.written
+    }
+
     func testRefusesToInjectBeforeScreenSizeIsKnown() {
         XCTAssertThrowsError(try sink.tap(at: CGPoint(x: 10, y: 10))) { error in
             XCTAssertEqual(error as? ScrcpyInputError, .screenSizeUnknown)
         }
-        XCTAssertTrue(stream.written.isEmpty)
+        XCTAssertTrue(records.isEmpty)
     }
 
     func testTapSendsDownThenUpAtSamePoint() throws {
@@ -23,9 +29,9 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.tap(at: CGPoint(x: 100, y: 200))
 
-        XCTAssertEqual(stream.written.count, 2)
-        let down = try TouchPacket(stream.written[0])
-        let up = try TouchPacket(stream.written[1])
+        XCTAssertEqual(records.count, 2)
+        let down = try TouchPacket(records[0])
+        let up = try TouchPacket(records[1])
         XCTAssertEqual(down.action, 0)
         XCTAssertEqual(up.action, 1)
         XCTAssertEqual([down.x, down.y], [100, 200])
@@ -44,7 +50,7 @@ final class ScrcpyInputSinkTests: XCTestCase {
         try sink.touchMove(to: CGPoint(x: 90, y: 100))
         try sink.touchUp(at: CGPoint(x: 90, y: 100))
 
-        let packets = try stream.written.map(TouchPacket.init)
+        let packets = try records.map(TouchPacket.init)
         XCTAssertEqual(packets.map(\.action), [0, 2, 2, 1])
         XCTAssertEqual(packets.map(\.x), [10, 50, 90, 90])
         XCTAssertEqual(packets.map(\.y), [20, 60, 100, 100])
@@ -57,8 +63,8 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.scroll(at: CGPoint(x: 432, y: 960), horizontal: 1, vertical: -2)
 
-        XCTAssertEqual(stream.written.count, 2, "先悬停再把滚动消息发出去")
-        let data = try XCTUnwrap(stream.written.last)
+        XCTAssertEqual(records.count, 2, "先悬停再把滚动消息发出去")
+        let data = try XCTUnwrap(records.last)
         XCTAssertEqual(data[0], 3)
         // 位置之后是屏宽高：864 = 0x0360，1920 = 0x0780。
         XCTAssertEqual(Array(data[9..<13]), [0x03, 0x60, 0x07, 0x80])
@@ -75,12 +81,12 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.scroll(at: CGPoint(x: 432, y: 960), horizontal: 0, vertical: -1)
 
-        XCTAssertEqual(stream.written.count, 2)
-        let hover = try TouchPacket(stream.written[0])
+        XCTAssertEqual(records.count, 2)
+        let hover = try TouchPacket(records[0])
         XCTAssertEqual(hover.action, 7, "7 = ACTION_HOVER_MOVE")
         XCTAssertEqual([hover.x, hover.y], [432, 960])
         XCTAssertEqual(hover.pressure, 0xFFFF)
-        XCTAssertEqual(stream.written[1][0], 3, "悬停之后才是滚动消息")
+        XCTAssertEqual(records[1][0], 3, "悬停之后才是滚动消息")
     }
 
     func testScrollIsClampedToTheProtocolRange() throws {
@@ -88,7 +94,7 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.scroll(at: CGPoint(x: 10, y: 10), horizontal: 0, vertical: 100)
 
-        let data = try XCTUnwrap(stream.written.last)
+        let data = try XCTUnwrap(records.last)
         // 16 × 2048 = 32768 超出 i16 正数上限，按客户端的做法钳到 32767。
         XCTAssertEqual(Array(data[15..<17]), [0x7F, 0xFF])
     }
@@ -98,9 +104,9 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.pressKey(.back)
 
-        XCTAssertEqual(stream.written.count, 2)
-        XCTAssertEqual(stream.written[0], Data([0x00, 0x00, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0]))
-        XCTAssertEqual(stream.written[1], Data([0x00, 0x01, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0]))
+        XCTAssertEqual(records.count, 2)
+        XCTAssertEqual(records[0], Data([0x00, 0x00, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0]))
+        XCTAssertEqual(records[1], Data([0x00, 0x01, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0]))
     }
 
     func testTextSendsInjectTextMessage() throws {
@@ -108,7 +114,7 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.sendText("hi")
 
-        XCTAssertEqual(stream.written, [Data([0x01, 0, 0, 0, 2, 0x68, 0x69])])
+        XCTAssertEqual(records, [Data([0x01, 0, 0, 0, 2, 0x68, 0x69])])
     }
 
     /// 转屏后宽高互换，后续事件必须用新尺寸，否则服务端会把坐标按比例算错。
@@ -119,7 +125,7 @@ final class ScrcpyInputSinkTests: XCTestCase {
         sink.updateScreenSize(width: 2400, height: 1080)
         try sink.tap(at: CGPoint(x: 3, y: 4))
 
-        let packets = try stream.written.map(TouchPacket.init)
+        let packets = try records.map(TouchPacket.init)
         XCTAssertEqual([packets[0].screenWidth, packets[0].screenHeight], [1080, 2400])
         XCTAssertEqual([packets[2].screenWidth, packets[2].screenHeight], [2400, 1080])
     }
@@ -129,7 +135,7 @@ final class ScrcpyInputSinkTests: XCTestCase {
 
         try sink.tap(at: CGPoint(x: -5, y: 500))
 
-        let down = try TouchPacket(stream.written[0])
+        let down = try TouchPacket(records[0])
         XCTAssertEqual([down.x, down.y], [0, 199])
     }
 }

@@ -6,4 +6,11 @@ public protocol ByteStream: AnyObject {
     func readExactly(_ count: Int) throws -> Data
     func write(_ data: Data) throws
     func close()
+
+    /// 还没被读走的字节数，只给延迟诊断用。不知道的实现返回 0。
+    var unreadByteCount: Int { get }
+}
+
+extension ByteStream {
+    public var unreadByteCount: Int { 0 }
 }

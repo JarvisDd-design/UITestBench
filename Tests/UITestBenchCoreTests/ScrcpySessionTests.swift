@@ -117,7 +117,12 @@ final class ScrcpySessionTests: XCTestCase {
         XCTAssertEqual(launcher.launches[0].executable, adb)
         XCTAssertEqual(
             launcher.launches[0].arguments,
-            ["-s", serial] + ScrcpyServerCommand.shellArguments(scid: 0xABCD, maxSize: 1920, maxFPS: 60)
+            ["-s", serial] + ScrcpyServerCommand.shellArguments(
+                scid: 0xABCD,
+                maxSize: 1920,
+                maxFPS: 60,
+                videoBitRate: 8_000_000
+            )
         )
 
         XCTAssertEqual(connector.requestedPorts, [27183, 27184])

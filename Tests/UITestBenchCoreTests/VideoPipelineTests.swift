@@ -93,4 +93,26 @@ final class VideoSampleBufferTests: XCTestCase {
         XCTAssertEqual(CVPixelBufferGetWidth(image), 320)
         XCTAssertEqual(CVPixelBufferGetHeight(image), 240)
     }
+
+    /// 显示层必须「到了就画」，否则会按 pts 排一队等着一个不存在的时钟。
+    func testAsksTheDisplayLayerToShowImmediately() throws {
+        var pixelBuffer: CVPixelBuffer?
+        CVPixelBufferCreate(
+            kCFAllocatorDefault, 64, 64, kCVPixelFormatType_32BGRA,
+            nil, &pixelBuffer
+        )
+        let frame = DecodedFrame(
+            pixelBuffer: try XCTUnwrap(pixelBuffer),
+            pts: CMTime(value: 1, timescale: 1_000_000)
+        )
+
+        let sample = try VideoSampleBuffer.make(from: frame)
+        let attachment = CMGetAttachment(
+            sample,
+            key: kCMSampleAttachmentKey_DisplayImmediately,
+            attachmentModeOut: nil
+        )
+
+        XCTAssertEqual(attachment as? Bool, true)
+    }
 }

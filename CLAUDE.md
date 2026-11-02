@@ -4,7 +4,9 @@
 
 ## 项目
 
-UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标输入 + 截图标注 + 屏幕取景框扫码。当前 1.4.2。基础计划在维护者的 `~/.claude/plans/encapsulated-swimming-boole.md`（18 条决策 + M0a–M9）；1.3.0 的主窗口改版计划在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)（已被取代），当前形态（手机 + 三个吸附悬浮面板）的设计与 M0 实测在 [docs/superpowers/plans/2026-10-23-ui-1-4-0-floating-panels.md](docs/superpowers/plans/2026-10-23-ui-1-4-0-floating-panels.md)。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
+UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 内嵌 scrcpy 画面 + 鼠标与键盘输入（中文走设备剪贴板）+ 截图标注 + 屏幕取景框扫码。当前 1.5.0。基础计划在 [docs/plans/encapsulated-swimming-boole.md](docs/plans/encapsulated-swimming-boole.md)（18 条决策 + M0a–M9）；1.3.0 的主窗口改版计划在 [docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md](docs/superpowers/plans/2026-10-22-ui-1-3-0-redesign.md)（已被取代），当前形态（手机 + 三个吸附悬浮面板）的设计与 M0 实测在 [docs/superpowers/plans/2026-10-23-ui-1-4-0-floating-panels.md](docs/superpowers/plans/2026-10-23-ui-1-4-0-floating-panels.md)。1.5.0 的镜像丢帧、显示时基与中文输入在 [docs/superpowers/plans/2026-11-02-mirror-latency-and-ime.md](docs/superpowers/plans/2026-11-02-mirror-latency-and-ime.md)（含模拟器帧率上限的实测，改动前先看）。计划外的「团队统一设备 ID」记录在 [docs/device-id.md](docs/device-id.md)。
+
+其余资料：[docs/plans/](docs/plans/README.md) 是计划归档（含 2026-10-26 的 1.4.3 计划），[docs/agent-memory/](docs/agent-memory/README.md) 是之前用 Claude Code 时攒的项目记忆（状态快照，别当现状），[docs/history/claude-code-sessions.md](docs/history/claude-code-sessions.md) 是 2026-10-20 至 10-26 旧会话的索引（原文在 `~/.claude/projects/`，不进仓库）。
 
 ## 常用命令
 
@@ -12,7 +14,7 @@ UI验收台是公司内部的 macOS SwiftUI 工具：本地 Android 模拟器 + 
 xcodegen generate                 # 改了 project.yml 后必须重跑
 swift build
 swift test                        # 真实模拟器用例默认 skip
-Scripts/package.sh 1.4.2          # 出 dist/UI验收台-1.4.2.dmg
+Scripts/package.sh 1.5.0          # 出 dist/UI验收台-1.5.0.dmg
 
 # 真实环境验收（约 3 分钟）
 UITESTBENCH_REAL_SETUP=1 \
@@ -22,6 +24,9 @@ swift test --filter RealAppLifecycleAcceptanceTests
 
 # 需要第二台全新 AVD 的跨设备用例
 UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDeviceID
+
+# 延迟冒烟（要一台已开机的模拟器，跑 60 秒）；绝对阈值默认不断言
+UITESTBENCH_LATENCY_ACCEPTANCE=1 swift test --filter MirrorLatencyAcceptanceTests
 ```
 
 `xcodebuild test` 的 `-derivedDataPath` 不要放在本项目的中文路径下，否则测试运行器会报 “Failed to create a bundle instance”；用 `/tmp/uitestbench-xcodebuild`。
@@ -51,10 +56,13 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 | 设备 | `AVDConfiguration`、`AVDStore`、`DeviceProfile`、`EmulatorController`、`TeamDeviceKeyProvisioner` |
 | 运行应用 | `AppLifecycle`、`AppRunner`、`DeviceIdentity`、`ScreenshotCapturer` |
 | scrcpy | `ScrcpyServerJar`、`ScrcpyServerCommand`、`ScrcpySession`、`ScrcpyProtocol`、`ScrcpyVideoReader`、`H264Decoder`、`VideoSampleBuffer`、`ScrcpyFramePump`、`MirrorEngine`、`ScrcpyMirrorSource` |
-| 输入 | `MirrorInputController`、`CoordinateMapper`、`ScrollNotchAccumulator`、`ScrcpyInputSink`、`DragScrollSink`、`KeyboardInput`、`DeviceBackShortcutPolicy` |
+| 画面延迟与画质 | `MirrorFrameSlot`（深度 1 丢旧帧）、`MirrorLatencyMonitor`、`MirrorQualityMode`、App 层 `Design/LatencyHUD` |
+| 输入 | `MirrorInputController`、`CoordinateMapper`、`ScrollNotchAccumulator`、`ScrcpyInputSink`、`DragScrollSink`、`KeyboardInput`、`KeyboardRouting`、`DeviceBackShortcutPolicy` |
 | 截图与标注 | `Annotation`、`AnnotationRenderer`、界面里的 `AnnotationEditorModel` |
 
 滚轮**不发** `INJECT_SCROLL_EVENT`，由 `DragScrollSink` 合成短拖动（按下 → 6 步 → 停顿 → 抬起）。这是 AOSP 14 模拟器上实测的结果，别改回滚动消息；细节见代码注释与 [docs/architecture.md](docs/architecture.md)。
+
+镜像上屏这一段有三条 1.5.0 踩出来的硬约束，缺一条就是黑屏或画面停住：① 显示层必须挂跟主机时钟走的 `controlTimebase`（`CMTimebaseCreateWithSourceClock` + `CMClockGetHostTimeClock`），第一帧用它的 PTS 对齐；② 喂帧**不看** `isReadyForMoreMediaData`——实测它长期报 false，跟着走一帧都进不去，写成「等它点头再喂」更糟，会永久黑屏；③ 设备时钟与主机时钟偏过 0.25 秒就重新对齐一次时间轴（只 `CMTimebaseSetTime`，不 flush）。待显示帧槽 `MirrorFrameSlot` 的深度锁死为 1，解不过来就丢旧帧，不要为了「画面更顺」加深槽位。判断跟不跟手看 ⌥⌘L 浮层的「跟手」，不要看 fps：这台开发机上的模拟器画面本身只有 12–15 fps 的产出能力。
 
 返回键仍走 `INJECT_KEYCODE`（`AndroidKey.back`）。1.4.x 的界面入口有两个：运行后底胶囊里的返回图标，以及应用级 ⌘[ 监视器；判定规则在 Core 的 `DeviceBackShortcutPolicy`，输入框编辑中和 sheet / 模态上不抢键。Esc / Delete 仍不映射返回，别为了「顺手」把这两个键接上去。
 
@@ -72,7 +80,7 @@ UITESTBENCH_TWO_AVDS=1 ... swift test --filter testAFreshDeviceGetsTheSameTeamDe
 - `RealAppLifecycleAcceptanceTests` 的样本 APK 需要 `APK_SAMPLE`；应用启动后要先点隐私弹窗的 `btn_agree`，否则应用不会写 SSAID，读不到设备 ID。
 - 真机用例各自启动 / 停止模拟器，整套约 3 分钟；`UITESTBENCH_TWO_AVDS=1` 会停掉主 AVD 再建一台全新的，默认 skip。
 - 用例结束会卸载样本包、删临时目录。测试失败后先确认没有残留的 `emulator` 进程、`/tmp/uitestbench-*` 和第二台 AVD 目录。
-- 截图是 `exec-out screencap -p`；镜像画面是 864×1920（设备 1080×2400，scale 0.8），两者不要混用坐标。
+- 截图是 `exec-out screencap -p`，尺寸是设备物理分辨率；镜像画面不是——它由画质档位决定（长边 1920 或 1280，并对齐到 8 的倍数），所以两者不要混用坐标。`ScrcpyInputSink` 收的是**画面坐标系**，消息里带上画面宽高，由服务端自己换算到设备坐标。
 
 ## 安全与数据红线
 

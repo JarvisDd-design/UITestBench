@@ -30,7 +30,7 @@ struct PhoneWindowView: View {
         // 只挂在某个视图上的 onExitCommand 收不到按键。
         .onChange(of: app.device.state) { state in
             if case let .running(serial) = state {
-                app.mirror.start(serial: serial)
+                app.mirror.start(serial: serial, profile: app.currentProfile)
                 app.run.attach(serial: serial, sdkDirectory: app.paths.sdkDirectory)
                 app.screenshot.attach(serial: serial, sdkDirectory: app.paths.sdkDirectory)
                 app.session.attach(serial: serial, sdkDirectory: app.paths.sdkDirectory)
@@ -83,6 +83,7 @@ struct PhoneWindowView: View {
                 app?.window.clickTarget(for: window) ?? .auxiliary
             }
             app.startBackKeyMonitor()
+            app.startLatencyHUDMonitor()
 
             // 退出时先卸包、再关设备：设备关了 adb 就卸不掉了。
             ShutdownCoordinator.shared.perform = {
@@ -127,6 +128,12 @@ struct PhoneWindowView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("手机屏幕画面")
                 .accessibilityAddTraits(.isImage)
+                // ⌥⌘L 开合，只给排查延迟用；不吃鼠标事件，不挡点击。
+                .overlay(alignment: .topLeading) {
+                    if app.mirror.showsLatencyHUD {
+                        LatencyHUD(report: app.mirror.hudReport)
+                    }
+                }
         } else {
             StandbyScreen(
                 device: app.device,
@@ -135,7 +142,7 @@ struct PhoneWindowView: View {
                 onStartDevice: { app.toggleDevice() },
                 onScan: { app.scanner.start(from: app.window.phoneWindow) },
                 onChooseFile: { app.apk.chooseFile() },
-                onReconnect: { app.mirror.start(serial: app.device.serial) }
+                onReconnect: { app.mirror.start(serial: app.device.serial, profile: app.currentProfile) }
             )
         }
     }

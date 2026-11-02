@@ -7,6 +7,9 @@ import CoreGraphics
 ///
 /// 视图坐标原点在左上角（视图侧用 `isFlipped` 保证），设备坐标原点是画面左上角。
 public final class MirrorInputController {
+    /// 每次把用户操作送给设备时回调一次。HUD 用它算「操作 → 画面动」的跟手延迟。
+    public var onInput: (() -> Void)?
+
     private let sink: MirrorInputSink
     private var mapper: CoordinateMapper
     /// 鼠标左键是否按着。没按下就不该发 MOVE/UP，否则设备会收到莫名其妙的触摸。
@@ -30,17 +33,20 @@ public final class MirrorInputController {
     }
 
     public func mouseDown(at point: CGPoint) {
+        onInput?()
         guard let device = mapper.devicePoint(from: point) else { return }
         isPressed = true
         try? sink.touchDown(at: device)
     }
 
     public func mouseDragged(to point: CGPoint) {
+        onInput?()
         guard isPressed, let device = clampedDevicePoint(point) else { return }
         try? sink.touchMove(to: device)
     }
 
     public func mouseUp(at point: CGPoint) {
+        onInput?()
         guard isPressed else { return }
         isPressed = false
         // 松手一律夹到画面内再发：鼠标滑出窗口时手指仍在屏幕上，不发 UP 会让设备
@@ -55,6 +61,7 @@ public final class MirrorInputController {
     /// 越界的那一轴落到画面中线，而不是贴到边缘——屏幕边缘常常是状态栏、
     /// 侧滑抽屉或者留白，手势落在那里要么没反应，要么误触。
     public func scroll(at point: CGPoint, horizontal: Int, vertical: Int) {
+        onInput?()
         let rect = mapper.contentRect
         guard rect.width > 0, rect.height > 0 else { return }
 
@@ -67,11 +74,19 @@ public final class MirrorInputController {
     }
 
     public func pressKey(_ key: AndroidKey) {
+        onInput?()
         try? sink.pressKey(key)
     }
 
     public func sendText(_ text: String) {
+        onInput?()
         try? sink.sendText(text)
+    }
+
+    /// 中文这类送不进 INJECT_TEXT 的文字：先写设备剪贴板，再补一次粘贴键。
+    public func setClipboardAndPaste(_ text: String) {
+        onInput?()
+        try? sink.setClipboardAndPaste(text: text)
     }
 
     /// 服务端拿消息里的屏宽高和视频帧尺寸比对，不一致整条丢弃。所以只在这里更新，

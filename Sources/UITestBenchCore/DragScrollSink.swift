@@ -87,6 +87,14 @@ public final class DragScrollSink: MirrorInputSink {
         try base.sendText(text)
     }
 
+    public func setClipboardAndPaste(text: String) throws {
+        try base.setClipboardAndPaste(text: text)
+    }
+
+    public func flushPendingWrites() {
+        base.flushPendingWrites()
+    }
+
     /// 正数向上滚（内容往下走）→ 手指往下拖；负数相反。
     ///
     /// 只把位移攒起来，由队列上的 drain 合并成手势：一批滚动一段手势，

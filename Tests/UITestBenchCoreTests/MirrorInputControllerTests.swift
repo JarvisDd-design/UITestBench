@@ -147,6 +147,7 @@ final class RecordingInputSink: MirrorInputSink {
         case scroll(CGPoint, Int, Int)
         case key(AndroidKey)
         case text(String)
+        case clipboardPaste(String)
     }
 
     private(set) var events: [Event] = []
@@ -184,4 +185,10 @@ final class RecordingInputSink: MirrorInputSink {
     func sendText(_ text: String) throws {
         events.append(.text(text))
     }
+
+    func setClipboardAndPaste(text: String) throws {
+        events.append(.clipboardPaste(text))
+    }
+
+    func flushPendingWrites() {}
 }

@@ -32,6 +32,11 @@ public final class SocketByteStream: ByteStream, @unchecked Sendable {
             var noSignal: Int32 = 1
             setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size))
 
+            // 关掉 Nagle。这条链路上一次操作就是一个小包（十几字节的控制消息），
+            // 攒包对吞吐毫无意义，只会让「点一下」多等一个 RTT。
+            var noDelay: Int32 = 1
+            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &noDelay, socklen_t(MemoryLayout<Int32>.size))
+
             let originalFlags = fcntl(fd, F_GETFL, 0)
             _ = fcntl(fd, F_SETFL, originalFlags | O_NONBLOCK)
 
@@ -126,5 +131,17 @@ public final class SocketByteStream: ByteStream, @unchecked Sendable {
         isClosed = true
         shutdown(fd, SHUT_RDWR)
         Darwin.close(fd)
+    }
+
+    /// 内核接收缓冲里还没被读走的字节数。只给延迟诊断用（判断上游是不是在反压），
+    /// 拿不到时返回 0。
+    ///
+    /// `FIONREAD` 是 C 宏（`_IOR('f', 127, int)`），Swift 里直接拿不到，这里写死展开值。
+    private static let fionreadRequest: UInt = 0x4004_667f
+
+    public var unreadByteCount: Int {
+        var pending: Int32 = 0
+        guard ioctl(fd, Self.fionreadRequest, &pending) == 0, pending > 0 else { return 0 }
+        return Int(pending)
     }
 }

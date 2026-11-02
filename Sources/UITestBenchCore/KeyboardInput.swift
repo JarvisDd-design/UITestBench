@@ -10,8 +10,9 @@ public enum KeyboardAction: Equatable, Sendable {
 
 /// 把 Mac 键盘的按键翻译成设备动作。
 ///
-/// 只送 ASCII 可见字符：控制通道的文字注入最终要变成设备上的按键事件，中文没有
-/// 对应的按键，送过去也只会被丢掉。这是已知限制，界面上会说明。
+/// 只送 ASCII 可见字符：`INJECT_TEXT` 最终要变成设备上的按键事件，中文没有对应的
+/// 按键。中文改走「写设备剪贴板 + 粘贴键」，分流规则在 `KeyboardRouting`，组字在
+/// App 层的 `MirrorDisplayView`。
 public enum KeyboardInput {
     /// 只关心会改变含义的修饰键；Shift 已经体现在字符本身（`A` 就是 `A`）。
     public struct Modifiers: OptionSet, Sendable {

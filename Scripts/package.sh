@@ -1,14 +1,14 @@
 #!/bin/bash
 # 打一个可以直接发给设计同事的 .dmg。
 #
-#   Scripts/package.sh            默认 1.4.3，输出到 dist/
+#   Scripts/package.sh            默认 1.5.0，输出到 dist/
 #
 # 只出 Apple 芯片（arm64）版本：模拟器镜像也只用 arm64-v8a，Intel 机器上没有意义。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-VERSION="${1:-1.4.3}"
+VERSION="${1:-1.5.0}"
 APP_NAME="UI验收台"
 PRODUCT="UITestBenchApp"
 STAGE=".build/dmg-stage"

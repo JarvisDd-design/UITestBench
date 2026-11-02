@@ -10,8 +10,9 @@ public enum ScrcpyInputError: Error, Equatable {
 /// 坐标是**画面坐标系**（解码出来的帧尺寸），不是设备物理分辨率：
 /// 开了 `max_size` 之后两者不同，服务端会按消息里带的宽高自行换算。
 ///
-/// 写操作由一把锁串行化——点击来自主线程，拖动与滚轮也可能来自别的线程，
-/// 一条消息被从中间劈开就全乱了。
+/// 写操作排在一条串行队列上：点击来自主线程，拖动与滚轮也可能来自别的线程，
+/// 一条消息被从中间劈开就全乱了；把写挪出主线程，socket 一慢也不会卡住界面。
+/// 锁只保护屏宽高和剪贴板序号，不跨 IO 持有。
 public protocol MirrorInputSink: AnyObject {
     func updateScreenSize(width: Int, height: Int)
     func touchDown(at point: CGPoint) throws
@@ -21,13 +22,19 @@ public protocol MirrorInputSink: AnyObject {
     func scroll(at point: CGPoint, horizontal: Int, vertical: Int) throws
     func pressKey(_ key: AndroidKey) throws
     func sendText(_ text: String) throws
+    /// 把文字写进设备剪贴板，再补一次粘贴键。中文只能走这条路。
+    func setClipboardAndPaste(text: String) throws
+    /// 等排队中的写操作全部落盘；停止和测试用。
+    func flushPendingWrites()
 }
 
 public final class ScrcpyInputSink: MirrorInputSink {
     private let stream: ByteStream
     private let lock = NSLock()
+    private let writeQueue = DispatchQueue(label: "com.uitestbench.control.write")
     private var screenWidth = 0
     private var screenHeight = 0
+    private var clipboardSequence: UInt64 = 0
 
     public init(stream: ByteStream) {
         self.stream = stream
@@ -68,18 +75,16 @@ public final class ScrcpyInputSink: MirrorInputSink {
         // 滚轮事件是 SOURCE_MOUSE，系统按鼠标指针位置找窗口。我们从不移动真实指针，
         // 不先发一条悬停消息的话，指针位置是未知的，滚动会被丢到别处——表现就是
         // 「滚轮完全没反应」。官方客户端靠鼠标移动顺带做了这件事，这里显式补上。
-        try stream.write(
-            ScrcpyControlMessage.touch(
-                action: .hoverMove,
-                pointerID: ScrcpyProtocol.pointerIDMouse,
-                x: x,
-                y: y,
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                pressure: 1
-            ).encoded()
+        let hover = ScrcpyControlMessage.touch(
+            action: .hoverMove,
+            pointerID: ScrcpyProtocol.pointerIDMouse,
+            x: x,
+            y: y,
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
+            pressure: 1
         )
-        let message = ScrcpyControlMessage.scroll(
+        let scroll = ScrcpyControlMessage.scroll(
             x: x,
             y: y,
             screenWidth: screenWidth,
@@ -87,22 +92,54 @@ public final class ScrcpyInputSink: MirrorInputSink {
             horizontal: horizontal,
             vertical: vertical
         )
-        try stream.write(message.encoded())
+        enqueue([hover.encoded(), scroll.encoded()])
     }
 
     public func pressKey(_ key: AndroidKey) throws {
-        lock.lock()
-        defer { lock.unlock() }
-        let down = ScrcpyControlMessage.keycode(action: .down, keycode: key.rawValue)
-        let up = ScrcpyControlMessage.keycode(action: .up, keycode: key.rawValue)
-        try stream.write(down.encoded())
-        try stream.write(up.encoded())
+        enqueue(keyPress(key))
     }
 
     public func sendText(_ text: String) throws {
+        enqueue([ScrcpyControlMessage.text(text).encoded()])
+    }
+
+    public func setClipboardAndPaste(text: String) throws {
+        guard !text.isEmpty else { return }
+
         lock.lock()
-        defer { lock.unlock() }
-        try stream.write(ScrcpyControlMessage.text(text).encoded())
+        clipboardSequence &+= 1
+        let sequence = clipboardSequence
+        lock.unlock()
+
+        // `paste: true` 就够：服务端收到这一条会自己写剪贴板再注入粘贴键。
+        // 再补一次 KEYCODE_PASTE 会粘两遍（「好的」变「好的好的」），实测确认过。
+        enqueue([ScrcpyControlMessage.setClipboard(sequence: sequence, paste: true, text: text).encoded()])
+    }
+
+    public func flushPendingWrites() {
+        writeQueue.sync {}
+    }
+
+    private func keyPress(_ key: AndroidKey) -> [Data] {
+        [
+            ScrcpyControlMessage.keycode(action: .down, keycode: key.rawValue).encoded(),
+            ScrcpyControlMessage.keycode(action: .up, keycode: key.rawValue).encoded(),
+        ]
+    }
+
+    /// 排进写队列，立刻返回。写失败只意味着这条消息没送出去，和之前 `try?`
+    /// 吞掉错误的表现一致；界面不会因为控制通道抖动而卡住。
+    private func enqueue(_ payloads: [Data]) {
+        guard !payloads.isEmpty else { return }
+        writeQueue.async { [stream] in
+            for payload in payloads {
+                do {
+                    try stream.write(payload)
+                } catch {
+                    return
+                }
+            }
+        }
     }
 
     private func touch(_ action: ScrcpyControlAction, at point: CGPoint, pressure: Float) throws {
@@ -120,7 +157,7 @@ public final class ScrcpyInputSink: MirrorInputSink {
             screenHeight: screenHeight,
             pressure: pressure
         )
-        try stream.write(message.encoded())
+        enqueue([message.encoded()])
     }
 
     /// 取整并夹到 `0...upperBound-1`：点在边缘上时不能越界，否则服务端会丢事件。

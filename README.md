@@ -4,7 +4,7 @@
 
 不找测试机、不记 adb 命令、退出不留业务数据。
 
-- 当前版本：**1.4.2**（2026-10-23）
+- 当前版本：**1.5.0**（2026-11-02）
 - 系统要求：macOS 12.3 及以上，**仅 Apple 芯片（arm64）**
 - 分发方式：内部 `.dmg`，不做 Apple 公证，靠包内的「首次打开.command」绕过 Gatekeeper
 - 不对外发布，不上传 APK 到任何第三方服务
@@ -19,12 +19,12 @@
 | APK 来源 | **屏幕取景框实时扫二维码**（可拖动玻璃卡片、320×320 透明取景区，出现后 2 秒开始扫）；二维码是 APK 下载链接时自动跟随，先按桌面 UA 取，拿到落地页再用手机 UA 重试，从页面里找 `.apk` 直链；空壳下载页（地址由页面脚本调详情接口取得）会照着页面自己的请求问一次接口再下载；拖入 APK / 二维码截图 / 图片数据；剪贴板粘贴；粘贴下载链接；选择本地文件 |
 | APK 解析 | 包名、应用名、版本、minSdk / targetSdk、ABI、启动 Activity；架构 / API / 拆分包等兼容性预检，中文解释 |
 | 运行 | 安装、启动、清数据重开、保留数据重开、完全重装、停止 |
-| 画面 | 自实现 scrcpy 协议，内嵌实时画面；屏幕录制权限只在扫码时申请，且只读取取景框区域、只在内存中识别 |
-| 输入 | 点击、拖拽、滚轮、ASCII 键盘输入；返回键（运行后底胶囊的返回图标，或 ⌘[） |
+| 画面 | 自实现 scrcpy 协议，内嵌实时画面；两档画质，流畅 30fps / 长边 1280 / 4Mbps，清晰 60fps / 长边 1920 / 6Mbps，切档自动重连；屏幕录制权限只在扫码时申请，且只读取取景框区域、只在内存中识别 |
+| 输入 | 点击、拖拽、滚轮；键盘输入（ASCII 直接发按键，中文在画面里组字、走设备剪贴板粘贴）；返回键（运行后底胶囊的返回图标，或 ⌘[） |
 | 截图标注 | 冻结画面，矩形 / 箭头 / 文字 / 画笔 / 颜色 / 撤销重做；保存 PNG 或复制到剪贴板 |
 | 设备 ID | 读取应用实际看到的 Android ID；显示后台常用的 32 位 MD5；团队统一设备 ID（见 [docs/device-id.md](docs/device-id.md)） |
 | 清理 | 退出时卸载被测应用、清数据、删临时 APK；强杀后下次启动自检清理 |
-| 诊断 | 折叠日志与「复制诊断信息」 |
+| 诊断 | 折叠日志与「复制诊断信息」；隐藏的延迟浮层（⌥⌘L）显示 fps、跟手延迟、丢帧与档位 |
 
 ## 给设计同事：安装
 
@@ -54,8 +54,8 @@ xcodebuild test \
   -destination 'platform=macOS' \
   -derivedDataPath /tmp/uitestbench-xcodebuild
 
-# 打 DMG，默认 1.4.2，输出到 dist/
-Scripts/package.sh 1.4.2
+# 打 DMG，默认 1.5.0，输出到 dist/
+Scripts/package.sh 1.5.0
 ```
 
 工程是双轨的：`Package.swift` 供 `swift build` / `swift test`，`project.yml` 经 XcodeGen 生成 `UITestBench.xcodeproj`，两者共用 `Sources/`，切换时源码不改。
@@ -73,8 +73,9 @@ Tests/UITestBenchCoreTests/ 单元测试 + 默认跳过的真实模拟器验收
 Project/                   XcodeGen 生成的 Info.plist 等
 Scripts/package.sh         构建 .dmg
 docs/                      架构、设备 ID、验收说明
+docs/plans/                早期计划归档（附索引，注明每份的对应版本与状态）
 docs/history/              早期原型方案（历史，不代表现状）
-docs/superpowers/plans/    1.3.0 与 1.4.0 的主窗口改版计划（1.4.0 为当前形态）
+docs/superpowers/plans/    1.3.0 与 1.4.0 的主窗口改版计划、1.5.0 的镜像延迟与中文输入计划
 ```
 
 工具自己的数据都在 `~/Library/Application Support/UI验收台/`：`sdk/`、`avd/`、`tmp/`、`logs/`。用户选中的原始 APK 与导出的截图不在清理范围内。
@@ -84,13 +85,16 @@ docs/superpowers/plans/    1.3.0 与 1.4.0 的主窗口改版计划（1.4.0 为�
 - [docs/architecture.md](docs/architecture.md) — 模块划分与关键数据流
 - [docs/device-id.md](docs/device-id.md) — 16 位 Android ID、32 位后台 MD5、团队统一 ID
 - [docs/acceptance-testing.md](docs/acceptance-testing.md) — 真机（模拟器）验收怎么跑
+- [docs/plans/README.md](docs/plans/README.md) — 计划归档索引（每份计划对应的版本与状态）
+- [docs/superpowers/plans/2026-11-02-mirror-latency-and-ime.md](docs/superpowers/plans/2026-11-02-mirror-latency-and-ime.md) — 1.5.0 的镜像延迟、丢帧策略与中文输入（含模拟器帧率上限的实测）
 - [docs/history/codex-prototype.md](docs/history/codex-prototype.md) — 最早的产品原型方案（归档）
 
 ## 已知限制
 
 - 只支持带 `arm64-v8a` 原生库的包；只有 `armeabi-v7a` 的包装不上。纯 Java/Kotlin 包不受影响。
 - 模拟器不是真机：风控、Play Integrity、DRM、推送、相机、NFC 等行为可能不同。
-- 中文输入不支持：控制通道只支持 ASCII，AOSP 镜像也没有中文输入法。
+- 画面帧率有宿主上限：开发机上的 AOSP 模拟器，画面（合成 + 编码）本身只有 12–15 fps 的产出能力，连系统自带的 `screenrecord` 也只有 12 fps，与工具的解码 / 显示链路无关。所以镜像里看到的卡顿未必是被测应用的问题——判断「跟不跟手」要看 ⌥⌘L 浮层里的「跟手」，不是 fps。
+- 中文输入靠设备剪贴板：中文没法变成按键事件，工具会把文字写进设备剪贴板再发一次粘贴键，组字用的是 Mac 侧输入法（镜像里没有中文输入法）。副作用是设备剪贴板被覆盖，密码框里粘贴会失败。
 - Home / 最近任务不提供；返回只在应用运行后由底胶囊的返回图标或 ⌘[ 触发。删除键和 Esc 仍不映射成返回（Esc 留给收起抽屉，删除键留给输入框退格）。
 - 没有 OAID；IMEI 为空。只认 OAID 的白名单需要开发改用 Android ID。
 - 团队统一设备 ID 会让所有人共享同一份「按设备保存」的应用状态，而不只是共享白名单。

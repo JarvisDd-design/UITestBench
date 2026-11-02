@@ -271,6 +271,17 @@ final class ScrcpyServerCommandTests: XCTestCase {
         ])
     }
 
+    /// 码率决定编码器排不排队：大屏机型降到 4Mbps 才跟得上手。
+    func testShellArgumentsCarryVideoBitRate() {
+        let arguments = ScrcpyServerCommand.shellArguments(
+            scid: 0xABCD,
+            maxSize: 1920,
+            maxFPS: 30,
+            videoBitRate: 4_000_000
+        )
+        XCTAssertEqual(Array(arguments.suffix(3)), ["max_size=1920", "max_fps=30", "video_bit_rate=4000000"])
+    }
+
     /// 服务端会先等控制 socket 连上再发设备名与尺寸，所以控制通道必须显式打开。
     func testEnablesControlChannel() {
         let arguments = ScrcpyServerCommand.shellArguments(scid: 0xABCD)

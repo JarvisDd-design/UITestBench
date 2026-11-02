@@ -6,6 +6,8 @@ public struct ScrcpySessionConfiguration: Equatable, Sendable {
     public var controlPort: Int
     public var maxSize: Int
     public var maxFPS: Int
+    /// 编码码率；`nil` 时用服务端默认值。
+    public var videoBitRate: Int?
     /// 服务端是异步起来的：`adb forward` 会先接住连接，设备端还没监听时立刻断开。
     /// 在这段时间里反复重连，直到握手读成功或超时。
     public var connectTimeout: TimeInterval
@@ -17,6 +19,7 @@ public struct ScrcpySessionConfiguration: Equatable, Sendable {
         controlPort: Int = 27184,
         maxSize: Int = 1920,
         maxFPS: Int = 60,
+        videoBitRate: Int? = 8_000_000,
         connectTimeout: TimeInterval = 10,
         retryInterval: TimeInterval = 0.1
     ) {
@@ -27,6 +30,7 @@ public struct ScrcpySessionConfiguration: Equatable, Sendable {
         self.controlPort = controlPort
         self.maxSize = maxSize
         self.maxFPS = maxFPS
+        self.videoBitRate = videoBitRate
         self.connectTimeout = connectTimeout
         self.retryInterval = retryInterval
     }
@@ -123,7 +127,8 @@ public final class ScrcpySession {
                 arguments: ["-s", serial] + ScrcpyServerCommand.shellArguments(
                     scid: configuration.scid,
                     maxSize: configuration.maxSize,
-                    maxFPS: configuration.maxFPS
+                    maxFPS: configuration.maxFPS,
+                    videoBitRate: configuration.videoBitRate
                 )
             )
         } catch {
@@ -185,6 +190,12 @@ public final class ScrcpySession {
             throw ScrcpySessionError.notStarted
         }
         return ScrcpyVideoReader(stream: videoStream)
+    }
+
+    /// 视频 socket 内核缓冲里堆着的字节数，只给延迟诊断用。
+    /// 稳态一直很大说明我们读得比服务端发得慢，延迟堆在了我们这侧。
+    public var videoBacklogBytes: Int {
+        videoStream?.unreadByteCount ?? 0
     }
 
     /// 控制 socket 没有握手，连上就能写。

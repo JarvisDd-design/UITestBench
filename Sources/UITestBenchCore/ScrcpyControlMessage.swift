@@ -6,6 +6,9 @@ public enum AndroidKey: UInt32, Equatable, Sendable {
     case back = 4
     case enter = 66
     case appSwitch = 187
+    /// 粘贴（API 11+ 的 `KeyEvent.KEYCODE_PASTE`）。中文输入靠它把剪贴板里的
+    /// 汉字送进设备的输入框。
+    case paste = 279
 }
 
 /// 取值与 Android `MotionEvent` 的 action 一致：0 down、1 up、2 move。
@@ -20,6 +23,11 @@ public enum ScrcpyControlAction: UInt8, Equatable, Sendable {
 
 /// 控制通道消息，布局对锁 scrcpy v5.0.1 的 `app/src/control_msg.c`。
 public struct ScrcpyControlMessage: Equatable, Sendable {
+    /// `INJECT_TEXT` 一次最多送的字节数，与服务端限制一致。
+    public static let textMaxLength = 300
+    /// 剪贴板文本的保险上限；服务端不设这个数，超长串会占内存。
+    public static let clipboardTextMaxLength = 4096
+
     public let bytes: Data
 
     public init(bytes: Data) {
@@ -99,11 +107,31 @@ public struct ScrcpyControlMessage: Equatable, Sendable {
     /// type + u32 长度 + UTF-8 正文；超过 300 字节时按字符边界截断。
     public static func text(_ text: String) -> ScrcpyControlMessage {
         let utf8 = Data(text.utf8)
-        let truncated = utf8.prefix(truncatingOnUTF8Boundary: 300)
+        let truncated = utf8.prefix(truncatingOnUTF8Boundary: Self.textMaxLength)
         var data = Data()
         data.append(1) // SC_CONTROL_MSG_TYPE_INJECT_TEXT
         data.appendBigEndian(UInt32(truncated.count))
         data.append(truncated)
+        return ScrcpyControlMessage(bytes: data)
+    }
+
+    /// 剪贴板：type, 序号 u64, paste 标志 u8, 文本长度 u32, UTF-8 正文。
+    ///
+    /// 布局对 scrcpy v5.0.1 的 `ControlMessageReader.parseSetClipboard`：先读序号
+    /// 和 paste 标志，再读带长度前缀的字符串。设备端粘贴由客户端自己发
+    /// `KEYCODE_PASTE`（这一版服务端不会替我们按）。
+    public static func setClipboard(
+        sequence: UInt64,
+        paste: Bool,
+        text: String
+    ) -> ScrcpyControlMessage {
+        let utf8 = Data(text.utf8).prefix(truncatingOnUTF8Boundary: Self.clipboardTextMaxLength)
+        var data = Data()
+        data.append(9) // SC_CONTROL_MSG_TYPE_SET_CLIPBOARD
+        data.appendBigEndian(sequence)
+        data.append(paste ? 1 : 0)
+        data.appendBigEndian(UInt32(utf8.count))
+        data.append(utf8)
         return ScrcpyControlMessage(bytes: data)
     }
 

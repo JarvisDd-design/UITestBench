@@ -9,6 +9,11 @@ public final class ScrcpyMirrorSource: MirrorFrameSource {
         self.session = session
     }
 
+    /// 图像包字节收齐时回调，延迟诊断用。重连后依然有效（pump 换了也要重新挂）。
+    public var onMediaPacket: (() -> Void)? {
+        didSet { pump?.onMediaPacket = onMediaPacket }
+    }
+
     public func start() async throws -> MirrorVideoSize {
         try await attachPump()
     }
@@ -22,7 +27,9 @@ public final class ScrcpyMirrorSource: MirrorFrameSource {
 
     private func attachPump() async throws -> MirrorVideoSize {
         let handshake = try await session.start()
-        pump = ScrcpyFramePump(reader: try session.videoReader())
+        let pump = ScrcpyFramePump(reader: try session.videoReader())
+        pump.onMediaPacket = onMediaPacket
+        self.pump = pump
         return MirrorVideoSize(
             width: Int(handshake.session.width),
             height: Int(handshake.session.height)

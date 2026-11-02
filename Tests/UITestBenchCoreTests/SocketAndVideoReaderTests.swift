@@ -113,6 +113,38 @@ final class SocketByteStreamTests: XCTestCase {
             }
         }
     }
+
+    func testUnreadByteCountTracksWhatTheKernelStillHolds() throws {
+        let server = try TestTCPServer()
+        defer { server.close() }
+
+        let stream = try SocketByteStream.connect(port: server.port, timeout: 2)
+        defer { stream.close() }
+        let peer = try server.accept()
+        defer { close(peer) }
+
+        XCTAssertEqual(stream.unreadByteCount, 0)
+
+        try TestSocket.write(peer, Data(repeating: 0x41, count: 300))
+
+        // 数据是内核异步送到接收缓冲的，给它一点时间落进去。
+        var observed = 0
+        for _ in 0..<100 {
+            observed = stream.unreadByteCount
+            if observed >= 300 { break }
+            usleep(10_000)
+        }
+        XCTAssertEqual(observed, 300)
+
+        _ = try stream.readExactly(120)
+        var remaining = observed
+        for _ in 0..<100 {
+            remaining = stream.unreadByteCount
+            if remaining <= 180 { break }
+            usleep(10_000)
+        }
+        XCTAssertEqual(remaining, 180)
+    }
 }
 
 // MARK: - 测试用 TCP 服务端

@@ -119,6 +119,38 @@ final class AppModel: ObservableObject {
         _ = phone.makeFirstResponder(mirror.display)
     }
 
+    /// 画质档位：用户没选过时跟着机型默认走（大屏默认流畅）。
+    var mirrorQuality: MirrorQualityMode {
+        mirror.quality(for: currentProfile)
+    }
+
+    /// 切档位。设备跑着的时候立刻重连一次，新参数才会生效。
+    func setMirrorQuality(_ mode: MirrorQualityMode) {
+        guard mode != mirrorQuality else { return }
+        mirror.setQuality(mode)
+        if case let .running(serial) = device.state {
+            mirror.start(serial: serial, profile: currentProfile)
+        }
+    }
+
+    private var latencyHUDMonitor: Any?
+
+    /// ⌥⌘L 开合延迟浮层。这是隐藏的诊断口，不给正式界面入口。
+    ///
+    /// 原来想用 ⌥⌘D，但那是系统的「显示/隐藏程序坞」，按下去根本到不了 App。
+    func startLatencyHUDMonitor() {
+        guard latencyHUDMonitor == nil else { return }
+        latencyHUDMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            let flags = event.modifierFlags
+            guard flags.contains(.option), flags.contains(.command) else { return event }
+            // 用键码判断：带 Option 时 charactersIgnoringModifiers 会给出组合字符。
+            guard event.keyCode == 37 else { return event }
+            self.mirror.toggleLatencyHUD()
+            return nil
+        }
+    }
+
     /// 底胶囊该显示什么，由手机窗口和胶囊面板共用，避免两处各算一遍。
     var actionCapsuleState: ActionCapsuleState {
         ActionCapsuleResolver.resolve(
