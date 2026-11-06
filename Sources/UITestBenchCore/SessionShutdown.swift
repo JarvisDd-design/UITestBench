@@ -8,49 +8,46 @@ import Foundation
 public struct SessionShutdown {
     private let cleaner: SessionCleaner
     private let lifecycle: AppLifecycleRunning?
-    private let packageName: String?
+    private let packageNames: [String]
 
     public init(
         cleaner: SessionCleaner,
         lifecycle: AppLifecycleRunning?,
-        packageName: String? = nil
+        packageNames: [String] = []
     ) {
         self.cleaner = cleaner
         self.lifecycle = lifecycle
-        self.packageName = packageName
+        self.packageNames = packageNames
     }
 
     /// - Parameter clearsTemporaryData: 退出时清空 `tmp/`；只是停止设备时传 `false`，
     ///   会话还没结束，用户手上的 APK 还得能用。
     public func run(clearsTemporaryData: Bool = true) async {
-        var names = Set<String>()
-        if let packageName, !packageName.isEmpty {
-            names.insert(packageName)
+        var names = Set(packageNames.filter { !$0.isEmpty })
+        if let pending = try? cleaner.pendingPackageNames() {
+            names.formUnion(pending)
         }
-        if let pending = try? cleaner.pendingPackageName() {
-            names.insert(pending)
-        }
+        let targets = names.sorted()
 
-        var stillInstalled = false
+        // 没卸掉的留着重试，卸掉的别让下次启动再卸一遍。
+        var failed = Set<String>()
         if let lifecycle {
-            for name in names.sorted() {
+            for name in targets {
                 try? await lifecycle.clearData(packageName: name)
                 do {
                     try await lifecycle.uninstall(packageName: name)
                 } catch {
-                    stillInstalled = true
+                    failed.insert(name)
                 }
             }
-        } else if !names.isEmpty {
+        } else if !targets.isEmpty {
             // 设备没起来，adb 无从下手；记录留着，下次启动补卸。
-            stillInstalled = true
+            failed.formUnion(targets)
         }
 
         if clearsTemporaryData {
             try? cleaner.clearTemporaryData()
         }
-        if !stillInstalled {
-            try? cleaner.forget()
-        }
+        try? cleaner.replacePending(failed.sorted())
     }
 }

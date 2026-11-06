@@ -316,12 +316,12 @@ final class RealAppLifecycleAcceptanceTests: XCTestCase {
         await SessionShutdown(
             cleaner: cleaner,
             lifecycle: lifecycle,
-            packageName: packageName
+            packageNames: [packageName]
         ).run()
 
         let removed = await lifecycle.isInstalled(packageName: packageName)
         XCTAssertFalse(removed, "退出清理后设备上不应当再有 \(packageName)")
-        XCTAssertNil(try cleaner.pendingPackageName(), "清理成功后不应当留下待卸记录")
+        XCTAssertEqual(try cleaner.pendingPackageNames(), [], "清理成功后不应当留下待卸记录")
         let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: paths.temporaryRoot.path)) ?? []
         XCTAssertEqual(leftovers, [], "tmp 不应当留下文件")
     }

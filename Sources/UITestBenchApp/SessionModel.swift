@@ -14,8 +14,9 @@ final class SessionModel: ObservableObject {
 
     private let cleaner: SessionCleaner
     private var lifecycle: AppLifecycle?
-    private var currentPackageName: String?
-    private var pendingPackageName: String?
+    /// 本次会话里跑过的每一个包；一次会话换着包测是常事，得全记着。
+    private var currentPackageNames: [String] = []
+    private var pendingPackageNames: [String] = []
 
     private var didStart = false
 
@@ -29,8 +30,11 @@ final class SessionModel: ObservableObject {
         guard !didStart else { return }
         didStart = true
         guard let record = try? cleaner.recover() else { return }
-        pendingPackageName = record.packageName
-        recoveryNotice = "上次没有正常退出，临时文件已清理。设备启动后会卸载 \(record.packageName)。"
+        let names = record.normalizedPackageNames
+        pendingPackageNames = names
+        recoveryNotice = names.count == 1
+            ? "上次没有正常退出，临时文件已清理。设备启动后会卸载 \(names[0])。"
+            : "上次没有正常退出，临时文件已清理。设备启动后会卸载 \(names.count) 个残留应用。"
     }
 
     func attach(serial: String, sdkDirectory: URL) {
@@ -43,20 +47,29 @@ final class SessionModel: ObservableObject {
 
     /// 设备刚启动时调用：把上次没卸掉的包补卸。
     func clearPendingInstallIfNeeded() async {
-        guard let lifecycle, let pending = pendingPackageName else { return }
-        do {
-            try await lifecycle.uninstall(packageName: pending)
-            pendingPackageName = nil
+        guard let lifecycle, !pendingPackageNames.isEmpty else { return }
+        var failed: [String] = []
+        for name in pendingPackageNames {
+            do {
+                try await lifecycle.uninstall(packageName: name)
+            } catch {
+                failed.append(name)
+            }
+        }
+        pendingPackageNames = failed
+        if failed.isEmpty {
             recoveryNotice = nil
-        } catch {
+            try? cleaner.forget()
+        } else {
             // 卸不掉就留着记录，下次再来；不打断用户当前要做的事。
-            recoveryNotice = "上次残留的应用没能卸载，退出时会再试一次。"
+            recoveryNotice = "上次残留的 \(failed.count) 个应用没能卸载，退出时会再试一次。"
         }
     }
 
     /// 应用真的起来了才记录。装失败、启动失败都不必留痕。
     func recordLaunch(packageName: String) {
-        currentPackageName = packageName
+        guard !currentPackageNames.contains(packageName) else { return }
+        currentPackageNames.append(packageName)
         try? cleaner.remember(packageName: packageName)
     }
 
@@ -66,10 +79,10 @@ final class SessionModel: ObservableObject {
         await SessionShutdown(
             cleaner: cleaner,
             lifecycle: lifecycle,
-            packageName: currentPackageName
+            packageNames: currentPackageNames
         ).run(clearsTemporaryData: false)
-        if (try? cleaner.pendingPackageName()) == nil {
-            currentPackageName = nil
+        if (try? cleaner.pendingPackageNames())?.isEmpty ?? true {
+            currentPackageNames = []
         }
     }
 
@@ -78,10 +91,10 @@ final class SessionModel: ObservableObject {
         await SessionShutdown(
             cleaner: cleaner,
             lifecycle: lifecycle,
-            packageName: currentPackageName
+            packageNames: currentPackageNames
         ).run()
-        currentPackageName = nil
-        pendingPackageName = nil
+        currentPackageNames = []
+        pendingPackageNames = []
     }
 }
 

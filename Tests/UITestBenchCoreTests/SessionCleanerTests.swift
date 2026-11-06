@@ -59,7 +59,7 @@ final class SessionCleanerTests: XCTestCase {
 
         let record = try cleaner.recover()
 
-        XCTAssertEqual(record?.packageName, "com.example.app")
+        XCTAssertEqual(record?.packageNames, ["com.example.app"])
     }
 
     func testRecoverWithoutRecordReturnsNil() throws {
@@ -85,7 +85,7 @@ final class SessionCleanerTests: XCTestCase {
 
         _ = try cleaner.recover()
 
-        XCTAssertEqual(try cleaner.pendingPackageName(), "com.example.app")
+        XCTAssertEqual(try cleaner.pendingPackageNames(), ["com.example.app"])
     }
 
     func testForgetRemovesTheRecord() throws {
@@ -94,7 +94,7 @@ final class SessionCleanerTests: XCTestCase {
 
         try cleaner.forget()
 
-        XCTAssertNil(try cleaner.pendingPackageName())
+        XCTAssertEqual(try cleaner.pendingPackageNames(), [])
     }
 
     /// 记录文件被截断、被手改成别的格式时，不能把应用卡死在启动自检上。
@@ -104,7 +104,7 @@ final class SessionCleanerTests: XCTestCase {
         let cleaner = SessionCleaner(supportDirectory: root)
 
         XCTAssertNil(try cleaner.recover())
-        XCTAssertNil(try cleaner.pendingPackageName())
+        XCTAssertEqual(try cleaner.pendingPackageNames(), [])
     }
 
     func testRememberCreatesDirectoriesOnDemand() throws {
