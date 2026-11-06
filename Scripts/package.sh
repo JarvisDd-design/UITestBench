@@ -1,14 +1,14 @@
 #!/bin/bash
 # 打一个可以直接发给设计同事的 .dmg。
 #
-#   Scripts/package.sh            默认 1.5.0，输出到 dist/
+#   Scripts/package.sh            默认 1.5.1，输出到 dist/
 #
 # 只出 Apple 芯片（arm64）版本：模拟器镜像也只用 arm64-v8a，Intel 机器上没有意义。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-VERSION="${1:-1.5.0}"
+VERSION="${1:-1.5.1}"
 APP_NAME="UI验收台"
 PRODUCT="UITestBenchApp"
 STAGE=".build/dmg-stage"
@@ -148,9 +148,10 @@ UI验收台 ${VERSION}
   · 「保存…」导出 PNG，「复制」直接贴进聊天工具。
 
 数据不留存
-  · 退出应用时会卸载被测应用、清掉数据、删除临时 APK。
+  · 退出应用时会卸载测试装上的应用、清掉数据、删除临时 APK；
+    一次会话里测过多个包，退出时都会卸载。
   · 你选中的原始 APK 与导出的截图不会被删除。
-  · 如果应用被强制结束，下次启动会自动清理上次的残留。
+  · 如果应用被强制结束，下次启动会自动补卸上次没清掉的应用。
 
 已知限制
   · 只支持 64 位（arm64）原生库的包；纯 Java/Kotlin 包不受影响。
