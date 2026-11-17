@@ -86,6 +86,7 @@
 		66C37F03C1732BB77A62A708 /* ScrcpyProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A596C0C1470635271DE3F62B /* ScrcpyProtocol.swift */; };
 		67AA7AE8DEB765D16F8F2AEB /* libUITestBenchCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 506FDE96EA9940A5B432819A /* libUITestBenchCore.a */; };
 		6839215F8B3AE9EA105B33C1 /* FloatingPanelLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A10E3C81DE38919E49D3FC /* FloatingPanelLayout.swift */; };
+		6907CC962A0C70DDA524F5A0 /* RealSessionCleanupAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7707B74CF03FA7669976CB1D /* RealSessionCleanupAcceptanceTests.swift */; };
 		6924662217D0A4BAA8087A85 /* MirrorQualityMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9364C6BE0CE1C65227333ED3 /* MirrorQualityMode.swift */; };
 		69537BA839163BF7D1212F16 /* WindowDragArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23126D1393B0CE5C05559F4C /* WindowDragArea.swift */; };
 		6991207DDAB82AC9E2C7B66C /* SdkInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7423D29D14767EBCAB6FE3DC /* SdkInstaller.swift */; };
@@ -316,6 +317,7 @@
 		73DCB767F5F2250347995C27 /* AppDrawer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDrawer.swift; sourceTree = "<group>"; };
 		7423D29D14767EBCAB6FE3DC /* SdkInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SdkInstaller.swift; sourceTree = "<group>"; };
 		74BA1BAC2A9F78340E64C8CB /* DeviceIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentityTests.swift; sourceTree = "<group>"; };
+		7707B74CF03FA7669976CB1D /* RealSessionCleanupAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealSessionCleanupAcceptanceTests.swift; sourceTree = "<group>"; };
 		771C3BBA459F1A2CF9ECC40D /* ScanCandidateSelectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCandidateSelectorTests.swift; sourceTree = "<group>"; };
 		771D929A2A9C704E3484A158 /* EmulatorControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorControllerTests.swift; sourceTree = "<group>"; };
 		77220D4C5EE0212444B3200F /* DockDrawer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockDrawer.swift; sourceTree = "<group>"; };
@@ -668,6 +670,7 @@
 				F837688C7D1ABAE41EE285F9 /* RealMirrorAcceptanceTests.swift */,
 				123770C9FCD530885D0A42D1 /* RealScrcpyAcceptanceTests.swift */,
 				27E368B83C7BBB7A3910DE14 /* RealSdkRepositoryAcceptanceTests.swift */,
+				7707B74CF03FA7669976CB1D /* RealSessionCleanupAcceptanceTests.swift */,
 				771C3BBA459F1A2CF9ECC40D /* ScanCandidateSelectorTests.swift */,
 				5D36D0DF8F0501A1E9F0253C /* ScanHitGateTests.swift */,
 				A53A6920491DED804275624B /* ScanSessionTests.swift */,
@@ -1063,6 +1066,7 @@
 				447E6A1891AD087F41F296E5 /* RealMirrorAcceptanceTests.swift in Sources */,
 				D3FE2C6D76C9DB718767126F /* RealScrcpyAcceptanceTests.swift in Sources */,
 				925C293B09560D085031928E /* RealSdkRepositoryAcceptanceTests.swift in Sources */,
+				6907CC962A0C70DDA524F5A0 /* RealSessionCleanupAcceptanceTests.swift in Sources */,
 				309F74F20409C7BBE43E4F32 /* ScanCandidateSelectorTests.swift in Sources */,
 				C5FB584FF26A7F7FD8213865 /* ScanHitGateTests.swift in Sources */,
 				E4808A1CFF067BF8711B6E1F /* ScanSessionTests.swift in Sources */,

@@ -4,7 +4,7 @@
 
 不找测试机、不记 adb 命令、退出不留业务数据。
 
-- 当前版本：**1.5.1**（2026-11-06）
+- 当前版本：**1.5.2**（2026-11-17）
 - 系统要求：macOS 12.3 及以上，**仅 Apple 芯片（arm64）**
 - 分发方式：内部 `.dmg`，不做 Apple 公证，靠包内的「首次打开.command」绕过 Gatekeeper
 - 不对外发布，不上传 APK 到任何第三方服务
@@ -54,8 +54,8 @@ xcodebuild test \
   -destination 'platform=macOS' \
   -derivedDataPath /tmp/uitestbench-xcodebuild
 
-# 打 DMG，默认 1.5.1，输出到 dist/
-Scripts/package.sh 1.5.1
+# 打 DMG，默认 1.5.2，输出到 dist/
+Scripts/package.sh 1.5.2
 ```
 
 工程是双轨的：`Package.swift` 供 `swift build` / `swift test`，`project.yml` 经 XcodeGen 生成 `UITestBench.xcodeproj`，两者共用 `Sources/`，切换时源码不改。
