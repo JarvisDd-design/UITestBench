@@ -74,6 +74,7 @@ App 层没有传统的应用窗口：可见的只有手机本身。手机是无�
 
 8. **结束**
    `SessionShutdown` 先清数据并卸载被测包，再删 `tmp/`；如果设备已经不在、包没卸掉，就保留 `SessionCleaner` 的会话记录，下次启动补卸。`SessionCleaner` 负责启动自检与残留清理。
+   判断「卸干净了没有」不能只看 `adb uninstall` 的输出：包不存在时它回的是 `Failure [DELETE_FAILED_INTERNAL_ERROR]`，而不是 `not installed`。只看输出就会把「设备上早就没有这个包」当成卸载失败，待卸记录越攒越多、每次启动都提示一遍（1.5.1 的毛病）。`AppLifecycle.uninstall` 失败后会用 `pm list packages <包名>` 复查：确认不在才算成功；问不到（设备掉线、包管理器没起来）则保留记录，下次再来。
 
 ## 关键设计取舍
 

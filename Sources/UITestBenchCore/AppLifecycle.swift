@@ -173,6 +173,11 @@ public final class AppLifecycle: AppLifecycleRunning {
     }
 
     /// 设备上本来就没有这个包时视为成功——「完全重装」的第一步常常就是这样。
+    ///
+    /// 注意别只看 `adb uninstall` 的输出：包不存在时它回的是
+    /// `Failure [DELETE_FAILED_INTERNAL_ERROR]`（不是 `not installed`），
+    /// 照字面当成失败的话，「上次残留待卸」的记录永远清不掉，
+    /// 每次启动都会再提示一遍。失败之后必须复查设备上到底还有没有这个包。
     public func uninstall(packageName: String) async throws {
         let result = try await adb(["uninstall", packageName])
         if result.status == 0 || result.output.contains("Success") { return }
@@ -180,6 +185,9 @@ public final class AppLifecycle: AppLifecycleRunning {
 
         let detail = InstallOutputParser.failureCode(in: result.output)
             ?? result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 只有「确认不在设备上」才算卸干净；问不到（设备掉线、包管理器没起来）
+        // 时别下结论，记录留着下次再试。
+        if await installedState(of: packageName) == .absent { return }
         throw AppLifecycleError.uninstallFailed(detail)
     }
 
@@ -195,13 +203,30 @@ public final class AppLifecycle: AppLifecycleRunning {
     }
 
     public func isInstalled(packageName: String) async -> Bool {
-        guard let result = try? await adb(["shell", "pm", "list", "packages", packageName]) else {
-            return false
+        await installedState(of: packageName) == .present
+    }
+
+    /// 设备上有没有这个包。除了「有 / 没有」，还要能表达「问不到」——
+    /// 设备掉线或包管理器没起来时 `pm list packages` 不给结果，
+    /// 这时既不能当成还在（会反复重试），也不能当成已经卸干净（会漏删）。
+    private enum InstalledState {
+        case present
+        case absent
+        case unknown
+    }
+
+    private func installedState(of packageName: String) async -> InstalledState {
+        guard let result = try? await adb([
+            "shell", "pm", "list", "packages", packageName
+        ]) else {
+            return .unknown
         }
-        return result.output
+        guard result.status == 0 else { return .unknown }
+        let listed = result.output
             .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .contains("package:\(packageName)")
+        return listed ? .present : .absent
     }
 
     static func component(packageName: String, activity: String) -> String {

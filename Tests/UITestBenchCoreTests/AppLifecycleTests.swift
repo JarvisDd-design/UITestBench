@@ -254,15 +254,53 @@ final class AppLifecycleTests: XCTestCase {
         try await lifecycle.uninstall(packageName: "com.example.demo")
     }
 
+    /// 模拟器对**不存在的包**回的也是 `DELETE_FAILED_INTERNAL_ERROR`，不是
+    /// `not installed`。不复查就当成「没卸掉」，待卸记录会永远清不掉。
+    func testUninstallTreatsMissingPackageAsAlreadyGone() async throws {
+        let (lifecycle, _) = makeLifecycle(
+            outputs: [
+                "Failure [DELETE_FAILED_INTERNAL_ERROR]",
+                ""
+            ],
+            statuses: [1, 0]
+        )
+
+        try await lifecycle.uninstall(packageName: "com.example.gone")
+    }
+
     func testUninstallFailureIsReported() async throws {
         let (lifecycle, _) = makeLifecycle(
-            outputs: ["Failure [DELETE_FAILED_INTERNAL_ERROR]"],
-            statuses: [1]
+            outputs: [
+                "Failure [DELETE_FAILED_INTERNAL_ERROR]",
+                "package:com.example.demo\n"
+            ],
+            statuses: [1, 0]
         )
 
         do {
             try await lifecycle.uninstall(packageName: "com.example.demo")
             XCTFail("卸载失败应当抛错")
+        } catch {
+            XCTAssertEqual(
+                error as? AppLifecycleError,
+                .uninstallFailed("DELETE_FAILED_INTERNAL_ERROR")
+            )
+        }
+    }
+
+    /// 包管理器还没起来时问不到「在不在」，不能当成「已经没了」而丢掉待卸记录。
+    func testUninstallKeepsRecordWhenAvailabilityIsUnknown() async throws {
+        let (lifecycle, _) = makeLifecycle(
+            outputs: [
+                "Failure [DELETE_FAILED_INTERNAL_ERROR]",
+                "Error: device 'emulator-5554' not found"
+            ],
+            statuses: [1, 1]
+        )
+
+        do {
+            try await lifecycle.uninstall(packageName: "com.example.demo")
+            XCTFail("问不到包在不在时不能算卸干净")
         } catch {
             XCTAssertEqual(
                 error as? AppLifecycleError,

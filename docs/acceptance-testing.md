@@ -29,6 +29,19 @@ export APK_SAMPLE="/path/to/sample.apk"
 - `5554` / `5556` 端口空闲，先停掉工具里正在运行的设备和其它模拟器。
 - 样本包 `com.qsnfrkgk.vdvfeh` 有隐私弹窗，按钮 resource-id 是 `com.qsnfrkgk.vdvfeh:id/btn_agree`。应用要等弹窗同意后才写 SSAID，读设备 ID 的用例会先点它。
 
+## 跑残留记录清理验收
+
+对着**已经开着**的模拟器验证「设备上早就不存在的包不会卡住待卸记录」：
+
+```bash
+UITESTBENCH_REAL_SETUP=1 \
+UITESTBENCH_SDK_DIR="$HOME/Library/Application Support/UI验收台" \
+UITESTBENCH_SERIAL=emulator-5554 \
+swift test --filter RealSessionCleanupAcceptanceTests
+```
+
+用例只在临时目录里写 `session.json`，不碰用户真实的记录，也不装 / 卸任何真实包。
+
 ## 跑生命周期验收
 
 ```bash
